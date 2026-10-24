@@ -5,7 +5,13 @@ import json
 
 from arxiv_digest import llm
 from arxiv_digest.fetcher import parse_atom
-from arxiv_digest.llm import Credentials, _extract_json, load_credentials, review_paper
+from arxiv_digest.llm import (
+    Credentials,
+    _extract_json,
+    load_credentials,
+    review_paper,
+    save_credentials,
+)
 
 from fixtures_atom import ATOM_FIXTURE, KEYWORDS
 
@@ -20,20 +26,24 @@ def fake_urlopen_with_content(content: str):
     return fake
 
 
-def test_no_key_returns_none(monkeypatch):
-    """未设置 LLM_API_KEY 时应返回 None（跳过 LLM）。"""
+def test_no_key_returns_none(monkeypatch, tmp_path):
+    """未设置 LLM_API_KEY 且无本地配置时应返回 None（跳过 LLM）。"""
     monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.setattr(llm, "CONFIG_PATH", tmp_path / "llm.json")
     assert load_credentials() is None
 
 
-def test_blank_key_is_skipped(monkeypatch):
-    """Key 为空白字符串时同样跳过。"""
+def test_blank_key_is_skipped(monkeypatch, tmp_path):
+    """环境变量 Key 为空白时回落到配置文件；两者皆无则跳过。"""
     monkeypatch.setenv("LLM_API_KEY", "   ")
+    monkeypatch.setattr(llm, "CONFIG_PATH", tmp_path / "llm.json")
     assert load_credentials() is None
 
 
-def test_credentials_read_env(monkeypatch):
-    """有 Key 时应读全三项配置，base_url 去掉末尾斜杠。"""
+def test_credentials_read_env(monkeypatch, tmp_path):
+    """有 Key 时应读全三项配置，base_url 去掉末尾斜杠；环境变量优先于配置文件。"""
+    monkeypatch.setattr(llm, "CONFIG_PATH", tmp_path / "llm.json")
+    save_credentials("sk-from-file", "https://file.example.com/v1", "file-model")
     monkeypatch.setenv("LLM_API_KEY", "sk-test")
     monkeypatch.setenv("LLM_BASE_URL", "https://api.example.com/v1/")
     monkeypatch.setenv("LLM_MODEL", "demo-model")
@@ -43,6 +53,44 @@ def test_credentials_read_env(monkeypatch):
         base_url="https://api.example.com/v1",
         model="demo-model",
     )
+
+
+def test_credentials_read_config_file(monkeypatch, tmp_path):
+    """未设环境变量时读取配置文件；空 base_url/model 回落默认值。"""
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_BASE_URL", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    config_path = tmp_path / "llm.json"
+    monkeypatch.setattr(llm, "CONFIG_PATH", config_path)
+    assert load_credentials() is None  # 文件尚不存在
+    save_credentials("sk-file", "", "")
+    creds = load_credentials()
+    assert creds == Credentials(
+        api_key="sk-file",
+        base_url=llm.DEFAULT_BASE_URL,
+        model=llm.DEFAULT_MODEL,
+    )
+
+
+def test_mask_key_hides_middle():
+    assert llm.mask_key("") == ""
+    assert llm.mask_key("short") == "*****"
+    masked = llm.mask_key("sk-1234567890abcdef")
+    assert masked.startswith("sk-123") and masked.endswith("cdef")
+    assert "7890" not in masked
+
+
+def test_test_credentials_reports_unreachable_endpoint(monkeypatch, tmp_path):
+    """端点不可达时 test_credentials 返回 (False, 可读信息)。"""
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.setattr(llm, "CONFIG_PATH", tmp_path / "llm.json")
+    ok, message = llm.test_credentials()
+    assert ok is False
+    assert "未配置" in message
+    save_credentials("sk-x", "http://127.0.0.1:9/v1", "m")
+    ok, message = llm.test_credentials()
+    assert ok is False
+    assert "调用失败" in message
 
 
 def test_extract_json_tolerates_noise():

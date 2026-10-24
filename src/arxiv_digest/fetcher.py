@@ -22,7 +22,12 @@ USER_AGENT = (
 
 @dataclass
 class Paper:
-    """一篇 arXiv 论文的全部关注字段。"""
+    """一篇论文的全部关注字段。
+
+    source 为 "arxiv" 时 arxiv_id/link 为 arXiv 编号与页面；
+    source 为 "openalex"（正式期刊/会议论文）时 arxiv_id 为空，
+    doi/citations/venue 记录 OpenAlex 返回的正式发表信息。
+    """
 
     arxiv_id: str
     title: str
@@ -31,6 +36,10 @@ class Paper:
     categories: list[str]
     published: datetime
     link: str
+    source: str = "arxiv"
+    doi: str = ""
+    citations: int | None = None
+    venue: str = ""
 
 
 def _squash(text: str) -> str:

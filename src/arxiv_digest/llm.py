@@ -1,7 +1,8 @@
 """可选 LLM 精排层：OpenAI 兼容 chat/completions 协议，纯 urllib 实现。
 
-设置环境变量 LLM_API_KEY 后启用（可配 LLM_BASE_URL / LLM_MODEL）；
-未设置 Key 或调用失败时优雅降级，只使用规则分，不阻塞日报生成。
+凭据读取顺序：环境变量（LLM_API_KEY / LLM_BASE_URL / LLM_MODEL）优先，
+其次本地配置文件 ~/.arxiv-digest/llm.json（桌面端"LLM 精排"设置弹窗写入）。
+两者都未设置时跳过 LLM；调用失败时优雅降级，只使用规则分。
 """
 
 import json
@@ -9,6 +10,7 @@ import os
 import re
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 
 from .fetcher import Paper
 from .scorer import ScoredPaper
@@ -16,6 +18,8 @@ from .scorer import ScoredPaper
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_MODEL = "gpt-4o-mini"
 TIMEOUT_SECONDS = 60
+TEST_TIMEOUT_SECONDS = 15
+CONFIG_PATH = Path.home() / ".arxiv-digest" / "llm.json"
 
 
 @dataclass
@@ -36,16 +40,54 @@ class LLMResult:
     abstract_zh: str | None = None
 
 
+def _load_config_file() -> dict:
+    """读取本地配置文件；不存在或损坏时返回空 dict。"""
+    try:
+        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def load_credentials() -> Credentials | None:
-    """读取环境变量凭据，未设置或为空时返回 None 表示跳过 LLM。"""
+    """读取凭据：环境变量优先，其次配置文件；都没有时返回 None 表示跳过 LLM。"""
     api_key = os.environ.get("LLM_API_KEY", "").strip()
+    if api_key:
+        return Credentials(
+            api_key=api_key,
+            base_url=os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
+            model=os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+        )
+    data = _load_config_file()
+    api_key = str(data.get("api_key", "")).strip()
     if not api_key:
         return None
     return Credentials(
         api_key=api_key,
-        base_url=os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
-        model=os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+        base_url=str(data.get("base_url") or DEFAULT_BASE_URL).rstrip("/"),
+        model=str(data.get("model") or DEFAULT_MODEL),
     )
+
+
+def save_credentials(api_key: str, base_url: str = "", model: str = "") -> None:
+    """保存凭据到本地配置文件（桌面端设置弹窗调用）。"""
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "api_key": (api_key or "").strip(),
+        "base_url": (base_url or "").strip().rstrip("/") or DEFAULT_BASE_URL,
+        "model": (model or "").strip() or DEFAULT_MODEL,
+    }
+    CONFIG_PATH.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def mask_key(api_key: str) -> str:
+    """脱敏展示：只保留首尾几位。"""
+    key = api_key or ""
+    if len(key) <= 10:
+        return "*" * len(key)
+    return f"{key[:6]}…{key[-4:]}"
 
 
 def _extract_json(content: str) -> dict | None:
@@ -62,7 +104,7 @@ def _extract_json(content: str) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def _chat(creds: Credentials, messages: list[dict]) -> str:
+def _chat(creds: Credentials, messages: list[dict], timeout: int = TIMEOUT_SECONDS) -> str:
     """调用 chat/completions 接口并返回首条回复文本。"""
     payload = json.dumps(
         {"model": creds.model, "messages": messages, "temperature": 0.2}
@@ -76,9 +118,22 @@ def _chat(creds: Credentials, messages: list[dict]) -> str:
         },
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         data = json.loads(response.read().decode("utf-8"))
     return data["choices"][0]["message"]["content"]
+
+
+def test_credentials() -> tuple[bool, str]:
+    """用当前凭据发一条最小消息验证连通性，返回 (是否成功, 可读信息)。"""
+    creds = load_credentials()
+    if creds is None:
+        return False, "未配置 API Key"
+    try:
+        content = _chat(creds, [{"role": "user", "content": "回复两个字：正常"}],
+                        timeout=TEST_TIMEOUT_SECONDS)
+    except Exception as exc:
+        return False, f"调用失败：{exc}"
+    return True, f"连接成功（{creds.model}）：{content.strip()[:40]}"
 
 
 def build_messages(paper: Paper, keywords: list[tuple[str, float]]) -> list[dict]:

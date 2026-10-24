@@ -2,6 +2,22 @@
 
 本项目的显著变更记录于此，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] - 2026-10-24
+
+### 新增
+
+- **多来源检索（桌面客户端）**：新增 OpenAlex 数据源，覆盖正式期刊与会议论文（Nature、IEEE、Springer、ACM 等出版社）。"来源"可选：全部（arXiv + 期刊会议合并去重）/ 仅期刊与会议 / 仅 arXiv 预印本；同一论文同时存在于两边时按 arXiv DOI 或标题去重，并把引用数/venue 合并到保留记录。
+- **"仅顶刊顶会"过滤**（`venues.py`）：内置 AI / 机器学习 / 视觉 / NLP / 机器人方向顶刊顶会清单（Nature、Science、TPAMI、IJCV、JMLR、NeurIPS、CVMLR 系列、ACL、T-RO、IJRR、RA-L、Science Robotics、ICRA、IROS、CoRL、RSS 等），简写/全称两层归一化匹配，兼容不同数据库的 venue 写法。
+- **LLM 精排设置弹窗**：顶部"LLM 精排"胶囊改为可点击，弹窗内配置 API Key / Base URL / 模型并支持"测试连接"，凭据保存到 `~/.arxiv-digest/llm.json`（环境变量 `LLM_API_KEY` 优先级不变）。
+- **引用数据源连通性测试**：顶部"引用数据源"胶囊可点击，实时探测 Semantic Scholar 与 OpenAlex 可用性。
+- **多来源容错**：合并检索模式下单个来源失败（如 arXiv 偶发 503）不拖垮整个检索，只要任一来源有结果即返回；OpenAlex 侧剔除 venue 为 arXiv 的预印本条目（正式发表论文才计入期刊/会议来源）。
+- 测试 +24 项（顶刊匹配、OpenAlex 解析/过滤/分片、S2 重试与兜底、多源合并去重与容错、LLM 配置回环、混合时区排序），总计 66 项。
+
+### 修复
+
+- **"影响力数据暂不可用"高发**：Semantic Scholar 免 Key 共享池限流（HTTP 429）时此前直接降级为无数据；现在带 2 次指数退避重试，仍失败自动切换 OpenAlex 批量 DOI 查询兜底（引用数/venue 真实可用，高影响力引用数仅 S2 提供）。
+- 顶部状态胶囊此前为纯展示元素（用户反馈"点不动"），现改为可交互按钮并接入真实动作。
+
 ## [0.3.0] - 2026-10-24
 
 ### 新增

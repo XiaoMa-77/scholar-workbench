@@ -2,6 +2,9 @@
 
 运行：pip install arxiv-digest-agent[desktop] 后执行 arxiv-digest-desktop
 桥接层（DesktopAPI）与窗口分离：桥接层可在无 pywebview 的环境下单测。
+
+检索来源支持 arXiv 预印本与 OpenAlex 正式期刊/会议论文（可合并去重）；
+引用数据 Semantic Scholar 优先、OpenAlex 兜底；LLM 凭据支持设置弹窗持久化。
 """
 
 import csv
@@ -11,10 +14,10 @@ import time
 from pathlib import Path
 
 from .fetcher import Paper
-from .impact import fetch_impact
-from .llm import load_credentials, rerank
+from .impact import ImpactInfo, fetch_impact, probe_providers
+from .llm import load_credentials, mask_key, rerank, save_credentials, test_credentials
 from .scorer import normalize_keywords, score_papers
-from .search import parse_terms, search_papers
+from .search import parse_terms, search_all
 
 WEB_DIR = Path(__file__).parent / "web"
 INDEX_HTML = WEB_DIR / "index.html"
@@ -22,9 +25,23 @@ INDEX_HTML = WEB_DIR / "index.html"
 # 前端分类选择器使用的常见 arXiv 分类
 SUGGESTED_CATEGORIES = ["cs.CV", "cs.CL", "cs.AI", "cs.LG", "cs.RO", "cs.IR", "stat.ML"]
 
+SOURCE_LABELS = {"arxiv": "arXiv 预印本", "openalex": "期刊/会议"}
+
 
 def _strip_version(arxiv_id: str) -> str:
     return arxiv_id.rsplit("v", 1)[0] if arxiv_id and arxiv_id[-1].isdigit() else arxiv_id
+
+
+def _impact_of(paper: Paper, lookup: dict[str, ImpactInfo]) -> ImpactInfo | None:
+    """arXiv 论文用引用数据源查询结果；OpenAlex 论文自带引用数直接构造。"""
+    if paper.source == "arxiv" and paper.arxiv_id:
+        found = lookup.get(_strip_version(paper.arxiv_id))
+        if found is not None:
+            return found
+    if paper.citations is not None or paper.venue:
+        return ImpactInfo(citations=paper.citations, influential=None,
+                          venue=paper.venue, year=paper.published.year)
+    return None
 
 
 def build_rows(
@@ -45,7 +62,7 @@ def build_rows(
     rows: list[dict] = []
     for item in scored[:limit]:
         paper = item.paper
-        impact = lookup.get(_strip_version(paper.arxiv_id))
+        impact = _impact_of(paper, lookup)
         rows.append(
             {
                 "arxiv_id": paper.arxiv_id,
@@ -56,6 +73,9 @@ def build_rows(
                 "categories": paper.categories,
                 "abstract": paper.abstract,
                 "link": paper.link,
+                "source": paper.source,
+                "source_label": SOURCE_LABELS.get(paper.source, paper.source),
+                "doi": paper.doi,
                 "score": round(item.score, 1),
                 "matched": item.matched,
                 "llm_score": round(item.llm_score, 1) if item.llm_reason else None,
@@ -82,22 +102,65 @@ class DesktopAPI:
         """是否配置了 LLM（用于前端提示，未配置时隐藏精排选项）。"""
         return json.dumps({"available": load_credentials() is not None})
 
+    def llm_config(self) -> str:
+        """当前 LLM 配置（Key 脱敏），供设置弹窗回显。"""
+        creds = load_credentials()
+        if creds is None:
+            return json.dumps({"configured": False}, ensure_ascii=False)
+        return json.dumps(
+            {
+                "configured": True,
+                "api_key_masked": mask_key(creds.api_key),
+                "base_url": creds.base_url,
+                "model": creds.model,
+            },
+            ensure_ascii=False,
+        )
+
+    def save_llm_config(self, api_key: str, base_url: str, model: str) -> str:
+        """保存 LLM 凭据到本地配置文件（环境变量存在时优先级仍更高）。"""
+        try:
+            save_credentials(api_key or "", base_url or "", model or "")
+            return json.dumps({"ok": True, "available": load_credentials() is not None},
+                              ensure_ascii=False)
+        except Exception as exc:
+            return json.dumps({"ok": False, "error": f"保存失败：{exc}"},
+                              ensure_ascii=False)
+
+    def test_llm(self) -> str:
+        """用当前凭据发一条最小消息，验证端点与 Key 可用。"""
+        ok, message = test_credentials()
+        return json.dumps({"ok": ok, "message": message}, ensure_ascii=False)
+
+    def test_impact_providers(self) -> str:
+        """探测引用数据源连通性（顶部状态胶囊点击时调用）。"""
+        return json.dumps(probe_providers(), ensure_ascii=False)
+
     def search(self, query: str, categories: str, limit: int, days: str,
-               use_llm: bool) -> str:
+               use_llm: bool, source: str = "arxiv",
+               venues_only: bool = False) -> str:
         """检索主流程：关键词/研究方向 → 相关度 + 学术影响力行数据。"""
         started = time.time()
         try:
             cats = json.loads(categories) if categories else []
             window_days = None if not days or days == "0" else int(days)
-            papers = search_papers(query, cats, limit=limit, days=window_days)
+            papers = search_all(
+                query, cats, limit=limit, days=window_days,
+                source=source if source in ("arxiv", "openalex", "all") else "arxiv",
+                venues_only=bool(venues_only))
             if not papers:
                 return json.dumps({"ok": True, "rows": [], "elapsed": 0,
                                    "message": "没有检索到符合条件的论文"}, ensure_ascii=False)
-            impact = fetch_impact([_strip_version(p.arxiv_id) for p in papers])
+            impact_ids = [_strip_version(p.arxiv_id) for p in papers
+                          if p.source == "arxiv" and p.arxiv_id]
+            impact = fetch_impact(impact_ids)
             rows = build_rows(papers, parse_terms(query), use_llm, limit, impact)
+            counts = {"arxiv": sum(1 for r in rows if r["source"] == "arxiv"),
+                      "openalex": sum(1 for r in rows if r["source"] == "openalex")}
             return json.dumps(
                 {"ok": True, "rows": rows, "elapsed": round(time.time() - started, 1),
-                 "impact_available": bool(impact)}, ensure_ascii=False)
+                 "impact_available": any(r["citations"] is not None for r in rows),
+                 "counts": counts}, ensure_ascii=False)
         except Exception as exc:  # 网络/解析异常都要给用户可读信息
             return json.dumps({"ok": False, "error": f"检索失败：{exc}"},
                               ensure_ascii=False)
@@ -107,14 +170,15 @@ class DesktopAPI:
         rows = json.loads(rows_json)
         buffer = io.StringIO()
         writer = csv.writer(buffer)
-        writer.writerow(["排名外键", "标题", "作者", "发表日期", "分类", "相关度",
+        writer.writerow(["标题", "作者", "来源", "发表日期", "分类", "相关度",
                          "LLM 相关性", "引用数", "高影响力引用", "发表 venue",
                          "影响力分", "链接"])
         for row in rows:
             writer.writerow([
                 row["title"], "、".join(row["authors"][:-1]) if row["authors"][-1:] == ["..."]
                 else "、".join(row["authors"]),
-                row["published"], "/".join(row["categories"]), row["score"],
+                row.get("source_label", ""), row["published"],
+                "/".join(row["categories"]), row["score"],
                 row["llm_score"] or "", row["citations"] if row["citations"] is not None else "",
                 row["influential"] if row["influential"] is not None else "",
                 row["venue"], row["impact_score"] if row["impact_score"] is not None else "",
@@ -129,7 +193,7 @@ def run() -> None:
 
     html = INDEX_HTML.read_text(encoding="utf-8")
     webview.create_window(
-        "arXiv Scholar Search · 论文检索与影响力分析",
+        "Scholar Search · 论文检索与影响力分析（arXiv + 期刊会议）",
         html=html,
         js_api=DesktopAPI(),
         width=1320,
