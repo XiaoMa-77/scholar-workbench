@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arxiv-digest"
-version = "0.1.0"
+version = "0.2.0"
 description = "每日抓取指定 arXiv 分类的最新论文，按关键词打分排序并生成 Markdown 日报的命令行 Agent"
 readme = "README.md"
 license = "MIT"

@@ -3,7 +3,11 @@
 from datetime import date
 
 from arxiv_digest.fetcher import parse_atom
-from arxiv_digest.reporter import render_report, write_report
+from arxiv_digest.reporter import (
+    collect_reported_links,
+    render_report,
+    write_report,
+)
 from arxiv_digest.scorer import score_papers
 
 from fixtures_atom import ATOM_FIXTURE, KEYWORDS
@@ -68,3 +72,24 @@ def test_write_report_creates_file(tmp_path):
     path = write_report(tmp_path, date(2026, 10, 24), "# demo\n")
     assert path.name == "2026-10-24.md"
     assert path.read_text(encoding="utf-8") == "# demo\n"
+
+
+def test_collect_reported_links_scans_previous_reports(tmp_path):
+    """已报告链接应被收集，example.md 与指定日期当天的文件不算重复。"""
+    (tmp_path / "2026-10-23.md").write_text(
+        "见 http://arxiv.org/abs/2610.10001v1 与 "
+        "[另一篇](http://arxiv.org/abs/2610.10002v1)。\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "example.md").write_text(
+        "http://arxiv.org/abs/9999.99999v1\n", encoding="utf-8"
+    )
+    (tmp_path / "2026-10-24.md").write_text(
+        "http://arxiv.org/abs/2610.10003v1\n", encoding="utf-8"
+    )
+    seen = collect_reported_links(tmp_path, date(2026, 10, 24))
+    assert "http://arxiv.org/abs/2610.10001v1" in seen
+    assert "http://arxiv.org/abs/2610.10002v1" in seen
+    assert "http://arxiv.org/abs/9999.99999v1" not in seen  # example 不算
+    assert "http://arxiv.org/abs/2610.10003v1" not in seen  # 当天自己不算
+    assert collect_reported_links(tmp_path / "nope", date(2026, 10, 24)) == set()

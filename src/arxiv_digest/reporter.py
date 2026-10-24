@@ -1,9 +1,31 @@
 """Markdown 日报的渲染与写盘。"""
 
+import re
 from datetime import date
 from pathlib import Path
 
 from .scorer import ScoredPaper
+
+# 日报里出现的 arXiv 链接（http://arxiv.org/abs/xxxxvN）
+LINK_RE = re.compile(r"http://arxiv\.org/abs/[^\s)\]]+")
+
+
+def collect_reported_links(report_dir: str | Path, day: date) -> set[str]:
+    """扫描已有日报，收集已报告过的论文链接。
+
+    日报窗口覆盖"昨天 + 今天"，不去重会导致每篇论文连续两天出现。
+    跳过 example.md（演示数据）与指定日期当天的文件（重新生成同一天
+    日报时，不应把当天自己算成重复）。
+    """
+    directory = Path(report_dir)
+    if not directory.is_dir():
+        return set()
+    seen: set[str] = set()
+    for path in sorted(directory.glob("*.md")):
+        if path.name in ("example.md", f"{day.isoformat()}.md"):
+            continue
+        seen.update(LINK_RE.findall(path.read_text(encoding="utf-8")))
+    return seen
 
 
 def _authors_line(item: ScoredPaper) -> str:

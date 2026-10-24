@@ -10,7 +10,7 @@ import yaml
 from . import __version__
 from .fetcher import fetch_papers
 from .llm import load_credentials, rerank
-from .reporter import render_report, write_report
+from .reporter import collect_reported_links, render_report, write_report
 from .scorer import normalize_keywords, score_papers
 
 # 未提供配置文件时使用的内置默认值
@@ -26,7 +26,7 @@ DEFAULT_CONFIG: dict = {
     ],
     "top_n": 10,
     "report_dir": "reports",
-    "max_results": 300,
+    "max_results": 500,  # 单页抓取上限；cs.CV+cs.CL 高峰日的兜底
     "lookback_days": 2,  # 日期窗口：2 表示“昨天 + 今天”
 }
 
@@ -93,6 +93,18 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"[2/4] 规则打分：共 {len(papers)} 篇论文")
     scored = score_papers(papers, keywords)
+
+    # 去重：窗口覆盖"昨天 + 今天"，跳过已在此前日报中出现过的论文
+    reported = collect_reported_links(config["report_dir"], day)
+    if reported:
+        fresh = [item for item in scored if item.paper.link not in reported]
+        print(f"      去重：跳过 {len(scored) - len(fresh)} 篇已报告过的论文")
+        scored = fresh
+
+    if not scored:
+        # 周末 arXiv 不发布、或窗口内论文均已报告过：不生成空日报
+        print("[!] 本期窗口内没有新论文，跳过日报生成")
+        return 0
 
     if args.no_llm:
         print("[3/4] 跳过 LLM 精排（--no-llm）")

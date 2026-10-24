@@ -7,12 +7,17 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from . import __version__
+
 # Atom 主命名空间与 arXiv 扩展命名空间
 ATOM_NS = "{http://www.w3.org/2005/Atom}"
 ARXIV_NS = "{http://arxiv.org/schemas/atom}"
 
 API_URL = "http://export.arxiv.org/api/query"
-USER_AGENT = "arxiv-digest-agent/0.1.0 (https://github.com/XiaoMa-77/arxiv-digest-agent)"
+USER_AGENT = (
+    f"arxiv-digest-agent/{__version__} "
+    "(https://github.com/XiaoMa-77/arxiv-digest-agent)"
+)
 
 
 @dataclass

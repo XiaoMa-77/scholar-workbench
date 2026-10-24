@@ -51,7 +51,7 @@ arxiv-digest --version
 | `keywords` | 内置 CV 关键词 | 关键词列表，支持 `{name: xxx, weight: N}` 带权重或纯字符串（权重 1）；也支持 `{关键词: 权重}` 映射写法 |
 | `top_n` | `10` | 日报展示的论文数量上限 |
 | `report_dir` | `reports` | 日报输出目录 |
-| `max_results` | `300` | 单次从 arXiv 取回的最大论文数 |
+| `max_results` | `500` | 单次从 arXiv 取回的最大论文数（cs.CV + cs.CL 高峰日的兜底） |
 | `lookback_days` | `2` | 日期窗口（含指定日期当天），2 表示"昨天 + 今天" |
 
 LLM 精排通过环境变量开启，全部可选：
@@ -66,10 +66,12 @@ LLM 精排通过环境变量开启，全部可选：
 
 仓库自带两个 workflow：
 
-- **`.github/workflows/daily.yml`**：cron `30 0 * * *`（北京时间 08:30）自动抓取当天论文、生成日报并提交回 `reports/`；也支持在 Actions 页面手动触发（`workflow_dispatch`）。想启用 LLM 精排，在仓库 Settings → Secrets and variables → Actions 中配置 `LLM_API_KEY`（可选 `LLM_BASE_URL`、`LLM_MODEL`），未配置时自动降级为纯规则打分。
+- **`daily.yml`**：cron `30 0 * * *`（北京时间 08:30）自动抓取当天论文、生成日报并提交回 `reports/`；也支持在 Actions 页面手动触发（`workflow_dispatch`）。想启用 LLM 精排，在仓库 Settings → Secrets and variables → Actions 中配置 `LLM_API_KEY`（可选 `LLM_BASE_URL`、`LLM_MODEL`），未配置时自动降级为纯规则打分。
+- **去重与空窗**：日报窗口为"昨天 + 今天"，生成前会扫描已有日报跳过已报告过的论文；窗口内没有新论文（如周末）时不生成文件，仓库不会积累空日报。
+- **注意**：GitHub 会在仓库连续 60 天没有 push 时自动停用定时任务，任意一次 push 即重置计时；被停用后也可在 Actions 页面一键重新启用。
 - **`.github/workflows/ci.yml`**：每次 push / PR 运行 `ruff check` 与 `pytest`，保证代码质量。
 
-Fork 本仓库即可获得属于自己的每日 arXiv 日报流。
+Fork 本仓库即可获得属于自己的每日 arXiv 日报流。注意：Fork 出的仓库默认禁用 Actions，需到 fork 仓库的 Actions 页面点击 "I understand my workflows, go ahead and enable them" 手动启用；如需 LLM 精排，还要在 fork 仓库的 Secrets 里配置 `LLM_API_KEY`。
 
 ## 仓库结构
 
