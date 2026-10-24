@@ -4,6 +4,12 @@
 
 每天自动抓取指定 arXiv 分类的最新论文，按你的关键词打分排序，生成一份 Markdown 日报；可选接入任意 OpenAI 兼容大模型做相关性精排与摘要中译。纯本地 CLI + GitHub Actions 定时任务，无服务器、无数据库。
 
+![工作流程](docs/pipeline.png)
+
+日报效果（由 [reports/example.md](reports/example.md) 渲染）：
+
+![日报效果](docs/report-preview.png)
+
 ## 功能特性
 
 - **抓取**：直连 arXiv 官方 Atom API（urllib 实现，除 PyYAML 外零依赖），多分类联合查询（`cat:cs.CV OR cat:cs.CL`），按提交时间降序取回后按发表日期过滤，默认覆盖"昨天 + 今天"，窗口可配。
