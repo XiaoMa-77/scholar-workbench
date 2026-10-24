@@ -1,0 +1,2 @@
+# 统一使用 LF 行尾，保证本地 Windows 与 CI Linux 行为一致
+* text=auto eol=lf
