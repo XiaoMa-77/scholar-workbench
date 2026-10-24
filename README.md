@@ -119,4 +119,15 @@ arxiv-digest-agent/
 
 ## 许可
 
-[MIT](LICENSE)
+代码与文档：[MIT](LICENSE)。
+
+### 数据来源与归属
+
+本工具检索与展示的数据来自第三方服务，其权利归各自所有者：
+
+| 数据 | 来源 | 说明 |
+|---|---|---|
+| 论文元数据（标题/作者/摘要/分类） | [arXiv API](https://info.arxiv.org/help/api/user-manual.html) | arXiv 的元数据可自由使用，请遵其服务条款并注明出处 |
+| 引用数、高影响力引用、发表 venue | [Semantic Scholar API](https://api.semanticscholar.org) | Semantic Scholar 数据集采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)，**非商业使用**；本工具仅作实时查询展示，不缓存再分发其数据 |
+
+导出的 CSV / Markdown 结果包含上述来源的数据，请按同样口径使用（尤其是非商业限制）。
