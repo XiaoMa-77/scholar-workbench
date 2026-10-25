@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>ArXiv Query: search_query=all:vision transformer</title>
+  <entry>
+    <id>http://arxiv.org/abs/2010.11929v2</id>
+    <published>2020-10-22T17:23:27Z</published>
+    <title>An Image is Worth 16x16 Words: Transformers for Image Recognition at
+Scale</title>
+    <summary>The Transformer architecture has become the dominant approach in
+natural language processing. We evaluate its applicability to computer vision
+tasks. The Vision Transformer (ViT) splits images into patches and attains
+excellent results compared to state-of-the-art convolutional networks.</summary>
+    <author><name>Alexey Dosovitskiy</name></author>
+    <author><name>Lucas Beyer</name></author>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1706.03762v7</id>
+    <published>2017-06-12T17:57:34Z</published>
+    <title>Attention Is All You Need</title>
+    <summary>The dominant sequence transduction models use recurrent or
+convolutional networks. We propose the Transformer, based solely on attention
+mechanisms, dispensing with recurrence and convolutions entirely.</summary>
+    <author><name>Ashish Vaswani</name></author>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>

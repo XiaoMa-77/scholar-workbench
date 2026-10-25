@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lit-review-agent"
+version = "0.1.0"
+description = "Literature review agent: search, download, figure inventory, cross-paper comparison and survey generation, with an optional MCP server."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = ["httpx>=0.27"]
+keywords = ["literature-review", "arxiv", "openalex", "research", "agent", "mcp"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+]
+
+[project.optional-dependencies]
+pdf = ["pymupdf>=1.24"]
+mcp = ["mcp>=1.2"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+litreview = "litreview.cli:main"
+
+[project.urls]
+Repository = "https://github.com/XiaoMa-77/lit-review-agent"
+Issues = "https://github.com/XiaoMa-77/lit-review-agent/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

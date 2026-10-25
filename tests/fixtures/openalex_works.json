@@ -1,0 +1,59 @@
+{
+  "results": [
+    {
+      "id": "https://openalex.org/W2963403868",
+      "doi": "https://doi.org/10.48550/arXiv.2010.11929",
+      "display_name": "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale",
+      "publication_year": 2020,
+      "cited_by_count": 30111,
+      "authorships": [
+        {"author": {"display_name": "Alexey Dosovitskiy"}},
+        {"author": {"display_name": "Lucas Beyer"}}
+      ],
+      "primary_location": {
+        "landing_page_url": "https://arxiv.org/abs/2010.11929",
+        "pdf_url": "https://arxiv.org/pdf/2010.11929",
+        "source": {"display_name": "arXiv (Cornell University)"}
+      },
+      "abstract_inverted_index": {
+        "The": [0], "Transformer": [1, 20], "architecture": [2],
+        "dominates": [3], "natural": [4], "language": [5], "processing": [6],
+        "we": [7], "apply": [8], "it": [9], "to": [10], "images": [11],
+        "with": [12], "patches": [13], "and": [14], "attention": [15],
+        "for": [16], "recognition": [17], "at": [18], "scale": [19]
+      }
+    },
+    {
+      "id": "https://openalex.org/W2964221748",
+      "doi": "https://doi.org/10.48550/arXiv.1706.03762",
+      "display_name": "Attention Is All You Need",
+      "publication_year": 2017,
+      "cited_by_count": 129044,
+      "authorships": [{"author": {"display_name": "Ashish Vaswani"}}],
+      "primary_location": {
+        "landing_page_url": "https://arxiv.org/abs/1706.03762",
+        "pdf_url": "https://arxiv.org/pdf/1706.03762",
+        "source": {"display_name": "arXiv (Cornell University)"}
+      },
+      "abstract_inverted_index": {
+        "Sequence": [0], "transduction": [1], "models": [2], "based": [3],
+        "on": [4], "attention": [5], "alone": [6], "without": [7],
+        "recurrence": [8], "or": [9], "convolutions": [10]
+      }
+    },
+    {
+      "id": "https://openalex.org/W4204246292",
+      "doi": null,
+      "display_name": "Training data ablations for cross-task transfer",
+      "publication_year": 2022,
+      "cited_by_count": 12,
+      "authorships": [],
+      "primary_location": {
+        "landing_page_url": "",
+        "pdf_url": null,
+        "source": null
+      },
+      "abstract_inverted_index": {}
+    }
+  ]
+}
