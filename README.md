@@ -1,12 +1,12 @@
-# lit-review-agent · 一体化科研文献助手
+# Scholar Workbench · 一体化科研文献工作台
 
-[![Tests](https://github.com/XiaoMa-77/lit-review-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/XiaoMa-77/lit-review-agent/actions/workflows/ci.yml)
+[![Tests](https://github.com/XiaoMa-77/scholar-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/XiaoMa-77/scholar-workbench/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **从发现论文到形成综述，在一个项目中完成。**
 
-lit-review-agent 将多来源论文检索、桌面交互、引用分析、按需论文简报、PDF 图表清单、跨论文比较和中文综述整合为一条工作流。既可以通过本地桌面窗口探索研究方向，也可以通过 CLI 或 MCP 将文献调研接入自己的工具链。
+Scholar Workbench 将多来源论文检索、桌面交互、引用分析、按需论文简报、PDF 图表清单、跨论文比较和中文综述整合为一条工作流。既可以通过本地桌面窗口探索研究方向，也可以通过 CLI 或 MCP 将文献调研接入自己的工具链。
 
 本仓库整合了原 `arxiv-digest-agent` 与 `lit-review-agent` 的功能、测试和 Git 提交历史。**每日日报自动更新已取消**；论文简报由命令行或 GitHub Actions 手动生成。
 
@@ -56,8 +56,8 @@ lit-review-agent 将多来源论文检索、桌面交互、引用分析、按需
 ### 克隆与安装
 
 ```bash
-git clone https://github.com/XiaoMa-77/lit-review-agent.git
-cd lit-review-agent
+git clone https://github.com/XiaoMa-77/scholar-workbench.git
+cd scholar-workbench
 python -m venv .venv
 ```
 
@@ -88,7 +88,7 @@ python -m pip install -e ".[pdf,mcp,dev]"         # 开发、测试、检查与�
 ### 完成第一次调研
 
 ```bash
-litreview survey "vision transformer object tracking" --limit 6 --out reports/tracking --no-llm
+scholar-workbench survey "vision transformer object tracking" --limit 6 --out reports/tracking --no-llm
 ```
 
 输出 `survey_<query>.md` 与 `papers.json`。论文标题、作者、引用数、图表候选和对比表来自程序采集与计算；配置大模型后可进一步润色综述叙述。
@@ -98,9 +98,9 @@ litreview survey "vision transformer object tracking" --limit 6 --out reports/tr
 ## 桌面客户端
 
 ```bash
-litreview desktop
+scholar-workbench desktop
 # 等价入口
-litreview-desktop
+scholar-workbench-desktop
 ```
 
 ![桌面检索与综述界面（固定样例数据）](docs/desktop-integrated.png)
@@ -122,32 +122,32 @@ litreview-desktop
 ### 统一入口
 
 ```bash
-litreview --help
-litreview search --help
-litreview survey --help
-litreview digest --help
+scholar-workbench --help
+scholar-workbench search --help
+scholar-workbench survey --help
+scholar-workbench digest --help
 ```
 
 | 命令 | 作用 |
 | --- | --- |
-| `litreview search "主题"` | 检索、去重、规则排序，向标准输出写入论文 JSON |
-| `litreview survey "主题"` | 检索 → PDF → 图表清单 → 对比 → 综述 |
-| `litreview "主题"` | 兼容原用法，等价于 survey |
-| `litreview desktop` | 启动桌面客户端 |
-| `litreview digest [参数]` | 手动生成一次论文简报 |
-| `litreview-mcp` | 启动 stdio MCP 服务 |
+| `scholar-workbench search "主题"` | 检索、去重、规则排序，向标准输出写入论文 JSON |
+| `scholar-workbench survey "主题"` | 检索 → PDF → 图表清单 → 对比 → 综述 |
+| `scholar-workbench "主题"` | 兼容原用法，等价于 survey |
+| `scholar-workbench desktop` | 启动桌面客户端 |
+| `scholar-workbench digest [参数]` | 手动生成一次论文简报 |
+| `scholar-workbench-mcp` | 启动 stdio MCP 服务 |
 
 ### 检索示例
 
 ```bash
 # 两来源合并检索
-litreview search "vision transformer" --source all --limit 20
+scholar-workbench search "vision transformer" --source all --limit 20
 
 # 近 30 天的 arXiv 视觉论文；--category 可重复
-litreview search "object tracking" --source arxiv --category cs.CV --days 30 --limit 20
+scholar-workbench search "object tracking" --source arxiv --category cs.CV --days 30 --limit 20
 
 # 正式期刊/会议中的顶刊顶会候选
-litreview search "robot learning" --source openalex --venues-only --limit 10
+scholar-workbench search "robot learning" --source openalex --venues-only --limit 10
 ```
 
 关键词支持双引号短语，多词以 AND 语义检索。分类筛选作用于 arXiv；顶刊顶会过滤作用于 OpenAlex 部分。时间与期刊筛选可能使实际返回数少于 `--limit`。
@@ -156,16 +156,16 @@ litreview search "robot learning" --source openalex --venues-only --limit 10
 
 ```bash
 # 标准流程：下载 PDF 并提取图表
-litreview survey "contrastive learning" --limit 6 --out reports/contrastive
+scholar-workbench survey "contrastive learning" --limit 6 --out reports/contrastive
 
 # 快速生成元数据综述
-litreview survey "robot learning" --limit 8 --no-pdf --no-llm --out reports/robot
+scholar-workbench survey "robot learning" --limit 8 --no-pdf --no-llm --out reports/robot
 
 # 仅检索 arXiv
-litreview survey "object tracking" --source arxiv --category cs.CV --out reports/tracking
+scholar-workbench survey "object tracking" --source arxiv --category cs.CV --out reports/tracking
 
 # 使用已有检索缓存和 PDF 缓存离线复现
-litreview survey "contrastive learning" --limit 6 --out reports/replay --offline
+scholar-workbench survey "contrastive learning" --limit 6 --out reports/replay --offline
 ```
 
 ### 检索与综述参数
@@ -192,9 +192,9 @@ litreview survey "contrastive learning" --limit 6 --out reports/replay --offline
 **仓库没有每日定时更新。** 以下命令只在调用时执行：
 
 ```bash
-litreview digest
-litreview digest --config config.yaml --top 20 --no-llm
-litreview digest --date 2026-10-24 --no-llm
+scholar-workbench digest
+scholar-workbench digest --config config.yaml --top 20 --no-llm
+scholar-workbench digest --date 2026-10-24 --no-llm
 
 # 保留原命令与模块入口
 arxiv-digest --config config.yaml
@@ -278,15 +278,15 @@ export LLM_MODEL="<model-name>"
 ```json
 {
   "mcpServers": {
-    "litreview": {
-      "command": "/absolute/path/to/lit-review-agent/.venv/bin/python",
+    "scholar-workbench": {
+      "command": "/absolute/path/to/scholar-workbench/.venv/bin/python",
       "args": ["-m", "litreview.mcp_server"]
     }
   }
 }
 ```
 
-Windows 将 `command` 改为虚拟环境内的完整路径，例如 `C:\\projects\\lit-review-agent\\.venv\\Scripts\\python.exe`。
+Windows 将 `command` 改为虚拟环境内的完整路径，例如 `C:\\projects\\scholar-workbench\\.venv\\Scripts\\python.exe`。
 
 | 工具 | 参数 | 返回 |
 | --- | --- | --- |
@@ -411,7 +411,7 @@ flowchart LR
 ```bash
 python -m pip install -e ".[pdf,mcp,dev]"
 python -m pytest tests -q
-python -m pytest tests -q --cov=litreview --cov=arxiv_digest --cov-report=term-missing
+python -m pytest tests -q --cov=scholar-workbench --cov=arxiv_digest --cov-report=term-missing
 python -m ruff check src
 python -m compileall -q src tests
 python -m build
@@ -425,10 +425,11 @@ CI 使用 Python 3.11 / 3.12 / 3.13，执行离线测试、源码检查、CLI �
 
 ## 迁移说明
 
-- 统一仓库与安装分发名称为 `lit-review-agent`，最低 Python 版本提升为 3.11。
-- 保留 `arxiv-digest`、`arxiv-digest-desktop`、`python -m arxiv_digest` 和原 `litreview "主题"` 调用方式。
-- 使用新的 `litreview search`、`survey`、`desktop`、`digest` 子命令统一访问功能。
-- 原 LLM 配置自动兼容读取；新的桌面配置写入 `~/.litreview/config.json`。
+- 统一仓库与安装分发名称为 `scholar-workbench`，最低 Python 版本提升为 3.11。
+- 保留 `litreview`、`litreview-desktop`、`litreview-mcp`、`arxiv-digest`、`arxiv-digest-desktop` 和 `python -m arxiv_digest` 调用方式。
+- 使用新的 `scholar-workbench search`、`survey`、`desktop`、`digest` 子命令统一访问功能。
+- 原 LLM 配置自动兼容读取；桌面配置继续写入 `~/.litreview/config.json`，缓存与报告目录继续沿用。
+- Python 模块名 `litreview` 与 MCP 工具名 `litreview_search` / `litreview_survey` 保持兼容。
 - 两仓库的 Git 历史通过合并保留；原 digest 测试、历史简报、截图与变更记录一并迁移。
 - 自动日报 cron 已移除。手动简报与 CI 继续可用。
 

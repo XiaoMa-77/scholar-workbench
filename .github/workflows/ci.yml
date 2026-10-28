@@ -33,10 +33,11 @@ jobs:
         run: python -m ruff check src
       - name: CLI smoke test
         run: |
+          scholar-workbench --help
           litreview --help
-          litreview search --help
-          litreview survey --help
-          litreview digest --help
+          scholar-workbench search --help
+          scholar-workbench survey --help
+          scholar-workbench digest --help
           arxiv-digest --version
       - name: MCP server imports cleanly
         run: python -c "import litreview.mcp_server"

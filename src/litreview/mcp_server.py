@@ -34,8 +34,8 @@ def main() -> None:
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError:
-        sys.exit('missing dependency: pip install "lit-review-agent[mcp]"')
-    server = FastMCP("lit-review-agent")
+        sys.exit('missing dependency: pip install "scholar-workbench[mcp]"')
+    server = FastMCP("scholar-workbench")
     register(server, LitReviewAgent())
     server.run()
 

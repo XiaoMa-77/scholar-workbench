@@ -29,7 +29,7 @@ def download_pdf(url: str, dest: str | Path, *, client: httpx.Client | None = No
     dest.parent.mkdir(parents=True, exist_ok=True)
     own_client = client is None
     client = client or httpx.Client(timeout=60.0, follow_redirects=True,
-                                    headers={"User-Agent": "lit-review-agent"})
+                                    headers={"User-Agent": "scholar-workbench"})
     try:
         with client.stream("GET", url) as response:
             response.raise_for_status()
@@ -79,7 +79,7 @@ def extract_content(pdf_path: str | Path, paper_id: str) -> PaperContent:
     try:
         import fitz  # pymupdf
     except ImportError as error:  # pragma: no cover
-        raise PdfError('missing dependency: pip install "lit-review-agent[pdf]"') from error
+        raise PdfError('missing dependency: pip install "scholar-workbench[pdf]"') from error
     doc = fitz.open(pdf_path)
     try:
         pages_text, figures, seen_xrefs = [], [], set()

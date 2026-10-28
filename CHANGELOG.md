@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- 项目统一更名为 Scholar Workbench；仓库与安装名称为 `scholar-workbench`。
+- 更新 README、仓库链接、桌面标题与命令入口，保留全部原命令与配置兼容。
+
 ## 0.2.0 — 2026-10-29
 
 - 合并 arxiv-digest-agent 的完整功能与 Git 历史：桌面检索、引用分析、顶刊筛选、规则打分、LLM 精排、简报与导出。

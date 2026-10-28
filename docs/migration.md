@@ -1,6 +1,6 @@
 # 合并迁移记录
 
-目标仓库：lit-review-agent。原 arxiv-digest-agent 的末次导入提交为 `1563f569bcce15729926210c160f8263d8120e00`。
+目标仓库：scholar-workbench（由 lit-review-agent 重命名）。原 arxiv-digest-agent 的末次导入提交为 `1563f569bcce15729926210c160f8263d8120e00`。
 
 | 原内容 | 合并后位置 / 行为 |
 | --- | --- |
@@ -20,3 +20,7 @@
 离线模式改为读取检索快照，避免离线运行再次请求搜索 API。MCP 服务使用 SDK 1.x 的 FastMCP 工具注册方式，并验证工具注册与调用。
 
 删除原仓库的前置条件：完整功能迁移、合并测试通过、目标 main 分支验证完成、完整 Git bundle 验证可恢复。仓库级的 stars、访问统计与 Actions 运行记录不属于 Git 提交历史。
+
+## 项目命名统一
+
+仓库与安装分发名称统一为 `scholar-workbench`，桌面标题使用 **Scholar Workbench**。新增 `scholar-workbench`、`scholar-workbench-desktop` 与 `scholar-workbench-mcp` 入口；原命令、Python 模块、MCP 工具名及 `~/.litreview/` 配置和缓存路径继续兼容。
