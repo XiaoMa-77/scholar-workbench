@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>Scholar Search</title>
+<title>Scholar Workbench</title>
 <style>
   :root {
     --bg: #f6f7f9; --card: #ffffff; --ink: #16181d; --ink-2: #5c6470;
@@ -235,8 +235,8 @@
     <div class="brand">
       <div class="logo">S</div>
       <div>
-        <h1>Scholar Search</h1>
-        <p>arXiv 预印本 + 期刊会议顶刊 · 相关度排序 · 学术影响力分析</p>
+        <h1>Scholar Workbench</h1>
+        <p>多源论文检索 · 学术影响力分析 · PDF 图表提取 · 文献对比与综述</p>
       </div>
     </div>
     <div class="sources">
@@ -323,7 +323,7 @@
             <input id="llm-model" placeholder="gpt-4o-mini" spellcheck="false">
           </div>
         </div>
-        <div class="note">保存到本机 ~/.arxiv-digest/llm.json，仅用于本地调用。环境变量 LLM_API_KEY 优先于此配置。配置后：检索 Top 20 相关性 0-10 精排 + 摘要中译。</div>
+        <div class="note">保存到本机 ~/.litreview/config.json，仅用于本地调用。环境变量 LLM_API_KEY 优先于此配置。配置后：检索 Top 20 相关性 0-10 精排 + 摘要中译。</div>
         <div class="btns">
           <button class="btn-primary" id="llm-save" style="padding:9px 20px;font-size:13.5px"><span class="label">保 存</span></button>
           <button class="btn-ghost" id="llm-test">测试连接</button>

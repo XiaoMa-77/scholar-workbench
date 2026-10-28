@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lit-review-agent"
+name = "scholar-workbench"
 version = "0.2.0"
 description = "Research agent: desktop multi-source discovery, on-demand digests, PDF figures, comparison, surveys and MCP."
 readme = "README.md"
@@ -24,6 +24,9 @@ desktop = ["pywebview>=5"]
 dev = ["pytest>=8.0", "pytest-cov", "ruff", "build"]
 
 [project.scripts]
+scholar-workbench = "litreview.cli:main"
+scholar-workbench-desktop = "arxiv_digest.desktop:main"
+scholar-workbench-mcp = "litreview.mcp_server:main"
 litreview = "litreview.cli:main"
 litreview-desktop = "arxiv_digest.desktop:main"
 arxiv-digest = "arxiv_digest.cli:main"
@@ -31,8 +34,8 @@ arxiv-digest-desktop = "arxiv_digest.desktop:main"
 litreview-mcp = "litreview.mcp_server:main"
 
 [project.urls]
-Repository = "https://github.com/XiaoMa-77/lit-review-agent"
-Issues = "https://github.com/XiaoMa-77/lit-review-agent/issues"
+Repository = "https://github.com/XiaoMa-77/scholar-workbench"
+Issues = "https://github.com/XiaoMa-77/scholar-workbench/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

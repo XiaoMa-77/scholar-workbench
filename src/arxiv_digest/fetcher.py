@@ -17,7 +17,7 @@ ARXIV_NS = "{http://arxiv.org/schemas/atom}"
 API_URL = "https://export.arxiv.org/api/query"
 USER_AGENT = (
     f"arxiv-digest-agent/{__version__} "
-    "(https://github.com/XiaoMa-77/lit-review-agent)"
+    "(https://github.com/XiaoMa-77/scholar-workbench)"
 )
 
 

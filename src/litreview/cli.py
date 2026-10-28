@@ -1,6 +1,6 @@
 """Command line entry point.
 
-    litreview "vision transformer" --limit 6 --out reports
+    scholar-workbench "vision transformer" --limit 6 --out reports
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import sys
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="litreview",
+        prog="scholar-workbench",
         description="Research agent: search -> download -> figures -> compare -> survey",
         epilog="Commands: survey QUERY (default), search QUERY, desktop, digest [options].")
     parser.add_argument("query", help="research topic / keywords")
@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
         from arxiv_digest.cli import main as digest_main
         return digest_main(argv[1:])
     if argv and argv[0] == "desktop":
-        argparse.ArgumentParser(prog="litreview desktop").parse_args(argv[1:])
+        argparse.ArgumentParser(prog="scholar-workbench desktop").parse_args(argv[1:])
         from arxiv_digest.desktop import main as desktop_main
         desktop_main()
         return 0

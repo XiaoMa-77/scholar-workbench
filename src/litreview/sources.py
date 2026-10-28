@@ -16,7 +16,7 @@ from .models import Paper
 
 ARXIV_API = "https://export.arxiv.org/api/query"
 OPENALEX_API = "https://api.openalex.org/works"
-UA = "lit-review-agent/0.1 (https://github.com/XiaoMa-77/lit-review-agent)"
+UA = "scholar-workbench/0.1 (https://github.com/XiaoMa-77/scholar-workbench)"
 ATOM = "{http://www.w3.org/2005/Atom}"
 ARXIV_NS = "{http://arxiv.org/schemas/atom}"
 

@@ -1,6 +1,6 @@
 """桌面客户端：pywebview 原生窗口 + 本地 HTML 前端（无需浏览器、无服务器）。
 
-运行：pip install arxiv-digest-agent[desktop] 后执行 arxiv-digest-desktop
+运行：pip install -e ".[desktop,pdf]" 后执行 scholar-workbench desktop
 桥接层（DesktopAPI）与窗口分离：桥接层可在无 pywebview 的环境下单测。
 
 检索来源支持 arXiv 预印本与 OpenAlex 正式期刊/会议论文（可合并去重）；
@@ -220,7 +220,7 @@ def run() -> None:
 
     html = INDEX_HTML.read_text(encoding="utf-8")
     webview.create_window(
-        "Scholar Search · 论文检索与影响力分析（arXiv + 期刊会议）",
+        "Scholar Workbench · 科研文献工作台",
         html=html,
         js_api=DesktopAPI(),
         width=1320,

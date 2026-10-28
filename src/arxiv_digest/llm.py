@@ -1,7 +1,8 @@
 """可选 LLM 精排层：OpenAI 兼容 chat/completions 协议，纯 urllib 实现。
 
 凭据读取顺序：环境变量（LLM_API_KEY / LLM_BASE_URL / LLM_MODEL）优先，
-其次本地配置文件 ~/.arxiv-digest/llm.json（桌面端"LLM 精排"设置弹窗写入）。
+其次本地配置文件 ~/.litreview/config.json（桌面端设置写入），
+最后兼容读取原 ~/.arxiv-digest/llm.json。
 两者都未设置时跳过 LLM；调用失败时优雅降级，只使用规则分。
 """
 

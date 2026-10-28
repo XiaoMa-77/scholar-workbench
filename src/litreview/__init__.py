@@ -1,4 +1,4 @@
-"""lit-review-agent: search, download, figure inventory, compare, survey."""
+"""scholar-workbench: search, download, figure inventory, compare, survey."""
 
 __version__ = "0.2.0"
 
