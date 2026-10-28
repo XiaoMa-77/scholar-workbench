@@ -1,8 +1,6 @@
 name: 每日 arXiv 日报
 
 on:
-  schedule:
-    - cron: "30 0 * * *" # UTC 00:30，即北京时间每天 08:30
   workflow_dispatch: # 支持在 Actions 页面手动触发
 
 permissions:
