@@ -1,15 +1,15 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "lit-review-agent"
-version = "0.1.0"
-description = "Literature review agent: search, download, figure inventory, cross-paper comparison and survey generation, with an optional MCP server."
+version = "0.2.0"
+description = "Research agent: desktop multi-source discovery, on-demand digests, PDF figures, comparison, surveys and MCP."
 readme = "README.md"
-license = { text = "MIT" }
-requires-python = ">=3.10"
-dependencies = ["httpx>=0.27"]
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27", "pyyaml>=6"]
 keywords = ["literature-review", "arxiv", "openalex", "research", "agent", "mcp"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -19,11 +19,16 @@ classifiers = [
 
 [project.optional-dependencies]
 pdf = ["pymupdf>=1.24"]
-mcp = ["mcp>=1.2"]
-dev = ["pytest>=8.0"]
+mcp = ["mcp>=1.2,<2"]
+desktop = ["pywebview>=5"]
+dev = ["pytest>=8.0", "pytest-cov", "ruff", "build"]
 
 [project.scripts]
 litreview = "litreview.cli:main"
+litreview-desktop = "arxiv_digest.desktop:main"
+arxiv-digest = "arxiv_digest.cli:main"
+arxiv-digest-desktop = "arxiv_digest.desktop:main"
+litreview-mcp = "litreview.mcp_server:main"
 
 [project.urls]
 Repository = "https://github.com/XiaoMa-77/lit-review-agent"
@@ -37,3 +42,15 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests/digest"]
+addopts = "--import-mode=importlib"
+
+[tool.setuptools.package-data]
+arxiv_digest = ["web/*.html"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

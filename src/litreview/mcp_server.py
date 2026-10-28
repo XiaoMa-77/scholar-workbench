@@ -1,63 +1,33 @@
-"""MCP stdio server exposing the literature review pipeline as tools.
-
-Requires the ``mcp`` extra. Run directly or configure in an MCP client::
-
-    {"mcpServers": {"litreview": {
-        "command": "python", "args": ["-m", "litreview.mcp_server"]}}}
-
-Tools: ``litreview_search``, ``litreview_survey``.
-"""
+"""MCP stdio tools backed by the shared research pipeline (mcp 1.x)."""
 
 from __future__ import annotations
 
+import json
 import sys
 
 from .agent import LitReviewAgent
-from .sources import ArxivSource, OpenAlexSource
 
 
 def register(server, agent: LitReviewAgent) -> None:
-    from mcp.types import Tool
+    @server.tool(name="litreview_search")
+    def search(query: str, limit: int = 8) -> str:
+        """Search arXiv and OpenAlex, deduplicate and rank; return paper JSON."""
+        if not 1 <= limit <= 300:
+            raise ValueError("limit must be between 1 and 300")
+        return json.dumps([paper.to_dict() for paper in agent.search(query, limit)],
+                          ensure_ascii=False, indent=1)
 
-    @server.list_tools()
-    async def list_tools() -> list[Tool]:
-        return [
-            Tool(
-                name="litreview_search",
-                description="Search arXiv (OpenAlex enrichment) for papers; "
-                            "returns normalized metadata as JSON.",
-                inputSchema={"type": "object", "properties": {
-                    "query": {"type": "string"},
-                    "limit": {"type": "integer", "default": 8}},
-                    "required": ["query"]}),
-            Tool(
-                name="litreview_survey",
-                description="Run the full pipeline (search, PDF figures, "
-                            "comparison) and return a Chinese survey in Markdown.",
-                inputSchema={"type": "object", "properties": {
-                    "query": {"type": "string"},
-                    "limit": {"type": "integer", "default": 6},
-                    "out_dir": {"type": "string", "default": "."}},
-                    "required": ["query"]}),
-        ]
-
-    @server.call_tool()
-    async def call_tool(name: str, arguments: dict) -> list:
-        from mcp.types import TextContent
-        if name == "litreview_search":
-            papers = agent.search(arguments["query"], int(arguments.get("limit", 8)))
-            import json
-            return [TextContent(type="text", text=json.dumps(
-                [p.to_dict() for p in papers], ensure_ascii=False, indent=1))]
-        if name == "litreview_survey":
-            result = agent.run(arguments["query"],
-                               limit=int(arguments.get("limit", 6)),
-                               out_dir=arguments.get("out_dir", "."))
-            text = result.survey_md
-            if result.pdf_errors:
-                text += "\n\n> PDF warnings: " + "; ".join(result.pdf_errors[:3])
-            return [TextContent(type="text", text=text)]
-        raise ValueError(f"unknown tool: {name}")
+    @server.tool(name="litreview_survey")
+    def survey(query: str, limit: int = 6, out_dir: str = ".") -> str:
+        """Search, download PDFs, inventory figures, compare and write a Chinese survey."""
+        if not 1 <= limit <= 300:
+            raise ValueError("limit must be between 1 and 300")
+        result = agent.run(query, limit=limit, out_dir=out_dir)
+        text = result.survey_md
+        warnings = result.source_errors + result.pdf_errors
+        if warnings:
+            text += "\n\n> Warnings: " + "; ".join(warnings[:3])
+        return text
 
 
 def main() -> None:
@@ -66,7 +36,7 @@ def main() -> None:
     except ImportError:
         sys.exit('missing dependency: pip install "lit-review-agent[mcp]"')
     server = FastMCP("lit-review-agent")
-    register(server, LitReviewAgent(arxiv=ArxivSource(), openalex=OpenAlexSource()))
+    register(server, LitReviewAgent())
     server.run()
 
 

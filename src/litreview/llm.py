@@ -49,7 +49,13 @@ def load_config(path: str | Path = CONFIG_PATH) -> dict:
         return {}
 
 
-def llm_from_config(path: str | Path = CONFIG_PATH) -> LLMClient | None:
+def llm_from_config(path: str | Path | None = None) -> LLMClient | None:
+    if path is None:
+        from arxiv_digest.llm import load_credentials
+        credentials = load_credentials()
+        if credentials is None:
+            return None
+        return LLMClient(credentials.base_url, credentials.api_key, credentials.model)
     config = load_config(path)
     if not all(config.get(key) for key in ("base_url", "api_key", "model")):
         return None

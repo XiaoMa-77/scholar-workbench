@@ -1,0 +1,40 @@
+name: 按需 arXiv 简报
+
+on:
+  workflow_dispatch: # 支持在 Actions 页面手动触发
+
+permissions:
+  contents: write # 允许用内置 GITHUB_TOKEN 提交日报
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: pip install -e .
+
+      - name: 生成今日日报
+        env:
+          # LLM 精排为可选：仓库未配置 LLM_API_KEY 时自动只用规则分
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: arxiv-digest
+
+      - name: 提交新增日报
+        run: |
+          git config user.name "XiaoMa-77"
+          git config user.email "XiaoMa-77@users.noreply.github.com"
+          git add -f -- reports/*.md
+          if git diff --cached --quiet; then
+            echo "今日无新增日报，跳过提交"
+          else
+            git commit -m "docs: generate on-demand arXiv digest $(date -u +%F)"
+            git push
+          fi
