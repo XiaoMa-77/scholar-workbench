@@ -1,0 +1,26 @@
+# arxiv-digest 配置示例：复制为 config.yaml 后按需修改
+# 不提供配置时，程序会使用内置默认值（cs.CV + cs.CL 与一组通用 CV 关键词）
+
+# 监控的 arXiv 分类（多个分类按 OR 联合查询）
+categories: [cs.CV, cs.CL]
+
+# 关键词与权重：标题命中记 3×权重，摘要命中记 1×权重；省略 weight 时默认为 1
+keywords:
+  - { name: vision-language, weight: 3 }
+  - { name: diffusion, weight: 2 }
+  - { name: segmentation, weight: 2 }
+  - { name: detection }
+  - { name: "3D" }
+  - { name: self-supervised }
+
+# 日报展示的论文数量
+top_n: 10
+
+# 日报输出目录
+report_dir: reports
+
+# 单次抓取的最大论文数（按提交时间降序取回，再按发表日期过滤）
+max_results: 300
+
+# 日期窗口（含今天）：2 表示“昨天 + 今天”，3 表示“前天 + 昨天 + 今天”
+lookback_days: 2

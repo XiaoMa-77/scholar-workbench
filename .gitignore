@@ -10,3 +10,6 @@ reports/
 sample_out/
 .idea/
 .vscode/
+config.yaml
+.coverage
+htmlcov/

@@ -80,6 +80,7 @@ def test_run_offline_with_cached_pdf(tmp_path, monkeypatch):
 
 def test_run_offline_without_cache_reports_pdf_errors(tmp_path):
     agent = make_agent(tmp_path, openalex=False)
+    agent.search("vision transformer", limit=2)  # cache metadata before disconnecting
     result = agent.run("vision transformer", limit=2, out_dir=tmp_path / "out2",
                        offline=True)
     assert len(result.papers) == 2

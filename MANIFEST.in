@@ -1,0 +1,5 @@
+include config.example.yaml CHANGELOG.md
+recursive-include docs *.md *.png
+recursive-include tests *.py *.xml *.json
+recursive-include reports *.md
+prune reports/digest

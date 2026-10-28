@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Scholar Search</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #16181d; --ink-2: #5c6470;
+    --line: #e6e8ec; --accent: #4f46e5; --accent-2: #7c3aed;
+    --accent-soft: #eef0fe; --good: #0f9d58; --warn: #b45309;
+    --shadow: 0 1px 2px rgba(20,22,26,.05), 0 8px 28px rgba(20,22,26,.07);
+    --radius: 14px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; }
+  body {
+    font-family:-apple-system,"Segoe UI","Noto Sans SC","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(1200px 500px at 85% -10%, #ede9fe55, transparent 60%),
+      radial-gradient(900px 400px at -10% 0%, #e0e7ff55, transparent 55%),
+      var(--bg);
+    color:var(--ink); font-size:14px; padding:28px 34px 40px;
+  }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:#d2d6dd; border-radius:8px; border:2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background:#b8bec8; }
+
+  /* ---------- 顶栏 ---------- */
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .logo {
+    width:38px; height:38px; border-radius:11px; flex:none;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:700; font-size:17px;
+    box-shadow:0 6px 16px -6px var(--accent);
+  }
+  .brand h1 { font-size:18px; font-weight:650; letter-spacing:.2px; }
+  .brand p { font-size:12px; color:var(--ink-2); margin-top:2px; }
+  .sources { display:flex; gap:8px; }
+  .src {
+    font-size:11.5px; color:var(--ink-2); background:var(--card);
+    border:1px solid var(--line); border-radius:20px; padding:5px 12px;
+    display:flex; align-items:center; gap:6px; transition:.2s;
+    cursor:pointer; font-family:inherit;
+  }
+  .src .dot { width:6px; height:6px; border-radius:50%; background:var(--good); flex:none; }
+  .src.dim .dot { background:#c2c8d0; }
+  .src:hover { border-color:#c9cdd4; transform:translateY(-1px); }
+  .src:active { transform:scale(.96); }
+  .src.testing .dot { animation:pulse 0.9s infinite; }
+  @keyframes pulse { 50% { opacity:.25; } }
+
+  /* ---------- 检索卡片 ---------- */
+  .search-card {
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:20px 22px; margin-bottom:20px;
+    transition:box-shadow .3s;
+  }
+  .search-card:focus-within { box-shadow:0 1px 2px rgba(20,22,26,.05), 0 12px 36px rgba(79,70,229,.12); }
+  .inputrow { display:flex; gap:12px; }
+  .query-wrap { flex:1; position:relative; }
+  .query-wrap svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#9aa1ac; }
+  #query {
+    width:100%; font-size:15px; padding:13px 16px 13px 42px;
+    border:1.5px solid var(--line); border-radius:11px; outline:none;
+    background:#fbfcfd; transition:border-color .2s, background .2s;
+    font-family:inherit;
+  }
+  #query:focus { border-color:var(--accent); background:#fff; }
+  #query::placeholder { color:#a8aeb8; }
+  .btn-primary {
+    padding:0 26px; border:none; border-radius:11px; cursor:pointer;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff;
+    font-size:14.5px; font-weight:600; font-family:inherit; letter-spacing:.3px;
+    transition:transform .15s, box-shadow .2s, filter .2s;
+    box-shadow:0 6px 18px -8px var(--accent);
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+  }
+  .btn-primary:hover { transform:translateY(-1px); filter:brightness(1.05); box-shadow:0 10px 24px -8px var(--accent); }
+  .btn-primary:active { transform:scale(.97); }
+  .btn-primary:disabled { opacity:.7; cursor:wait; }
+  .spinner { width:15px; height:15px; border:2px solid #fff5; border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; display:none; }
+  .busy .spinner { display:block; } .busy .label { display:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .filters { display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap; }
+  .flabel { font-size:11.5px; color:var(--ink-2); font-weight:600; letter-spacing:.4px; }
+  .chip {
+    font-size:12.5px; padding:5.5px 13px; border-radius:20px; cursor:pointer;
+    border:1px solid var(--line); background:#fbfcfd; color:var(--ink-2);
+    transition:all .18s; user-select:none; font-family:inherit;
+  }
+  .chip:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
+  .chip.on {
+    background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600;
+    box-shadow:inset 0 0 0 1px var(--accent);
+  }
+  .chip:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+  select {
+    font-size:12.5px; padding:6px 10px; border-radius:9px; border:1px solid var(--line);
+    background:#fbfcfd; color:var(--ink); outline:none; font-family:inherit; cursor:pointer;
+    transition:border-color .2s;
+  }
+  select:hover { border-color:#c9cdd4; }
+  .llm-chip { margin-left:auto; }
+  .llm-chip .chip { display:flex; gap:6px; align-items:center; }
+  .hint { font-size:11.5px; color:#9aa1ac; margin-top:11px; line-height:1.6; }
+
+  /* ---------- 结果区 ---------- */
+  .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:12px; min-height:30px; }
+  .stats { font-size:12.5px; color:var(--ink-2); }
+  .stats b { color:var(--ink); }
+  .toolbar .grow { flex:1; }
+  .btn-ghost {
+    font-size:12.5px; padding:7px 14px; border-radius:9px; cursor:pointer;
+    border:1px solid var(--line); background:var(--card); color:var(--ink-2);
+    font-family:inherit; transition:all .18s; display:flex; align-items:center; gap:6px;
+  }
+  .btn-ghost:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
+  .btn-ghost:active { transform:scale(.96); }
+
+  .paper-list { display:flex; flex-direction:column; gap:10px; }
+  .paper {
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:15px 18px; display:flex; gap:16px; align-items:flex-start;
+    cursor:pointer; transition:transform .18s, box-shadow .22s, border-color .2s;
+    animation:fadeUp .45s cubic-bezier(.2,.7,.3,1) both;
+  }
+  .paper:hover { transform:translateY(-2px); box-shadow:var(--shadow); border-color:#d6dae0; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+  .rank { width:34px; flex:none; text-align:center; font-size:19px; font-weight:700; color:#c6ccd6; padding-top:2px; transition:color .2s; }
+  .paper:hover .rank { color:var(--accent); }
+  .main { flex:1; min-width:0; }
+  .title { font-size:14.5px; font-weight:600; line-height:1.45; margin-bottom:5px; }
+  .title a { color:var(--ink); text-decoration:none; }
+  .title a:hover { color:var(--accent); }
+  .meta { font-size:12px; color:var(--ink-2); display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .cat { background:#f2f4f7; border-radius:5px; padding:1px 7px; font-size:11px; }
+  .srcbadge {
+    border-radius:5px; padding:1px 7px; font-size:11px; font-weight:600;
+    background:var(--accent-soft); color:var(--accent);
+  }
+  .srcbadge.oa { background:#e7f6ef; color:#0b7a4b; }
+  .venue { color:var(--warn); font-weight:600; font-size:11.5px; }
+  .side { width:230px; flex:none; display:flex; gap:18px; justify-content:flex-end; padding-top:2px; }
+  .metric { width:86px; }
+  .metric .num { font-size:15px; font-weight:700; }
+  .metric .num small { font-size:10.5px; color:var(--ink-2); font-weight:500; margin-left:2px; }
+  .metric .name { font-size:10.5px; color:var(--ink-2); margin:2px 0 5px; letter-spacing:.3px; }
+  .bar { height:5px; border-radius:4px; background:#edeff2; overflow:hidden; }
+  .bar i { display:block; height:100%; width:0; border-radius:4px; transition:width .9s cubic-bezier(.2,.7,.3,1); }
+  .rel i { background:linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .imp i { background:linear-gradient(90deg, #0ea5e9, var(--good)); }
+  .cite-note { font-size:10.5px; color:#9aa1ac; margin-top:4px; }
+
+  /* ---------- 骨架屏 ---------- */
+  .skel { height:76px; border-radius:12px; border:1px solid var(--line); background:var(--card);
+          position:relative; overflow:hidden; }
+  .skel::after {
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(100deg, transparent 30%, #f0f2f5 50%, transparent 70%);
+    animation:shimmer 1.3s infinite; transform:translateX(-100%);
+  }
+  @keyframes shimmer { to { transform:translateX(100%); } }
+
+  .empty {
+    text-align:center; padding:60px 0; color:var(--ink-2); font-size:13.5px;
+    background:var(--card); border:1px dashed var(--line); border-radius:12px;
+  }
+  .empty .big { font-size:34px; margin-bottom:10px; }
+
+  /* ---------- 详情弹窗 ---------- */
+  .overlay {
+    position:fixed; inset:0; background:rgba(18,20,26,.35); backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:30px;
+    opacity:0; transition:opacity .22s;
+  }
+  .overlay.show { display:flex; opacity:1; }
+  .modal {
+    width:min(760px, 94vw); max-height:86vh; overflow:auto; background:var(--card);
+    border-radius:16px; box-shadow:0 24px 80px rgba(10,12,20,.3); padding:26px 28px;
+    transform:scale(.94) translateY(10px); transition:transform .25s cubic-bezier(.2,.7,.3,1);
+  }
+  .overlay.show .modal { transform:none; }
+  .modal h2 { font-size:17.5px; line-height:1.5; margin-bottom:14px; padding-right:36px; }
+  .close {
+    position:absolute; right:26px; top:24px; width:30px; height:30px; border-radius:9px;
+    border:none; background:#f2f4f7; color:var(--ink-2); cursor:pointer; font-size:15px;
+    transition:all .18s;
+  }
+  .close:hover { background:#e8eaee; color:var(--ink); transform:rotate(90deg); }
+  .grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:16px; }
+  .cell { background:#f8f9fb; border-radius:10px; padding:10px 12px; }
+  .cell .k { font-size:10.5px; color:var(--ink-2); letter-spacing:.4px; margin-bottom:3px; }
+  .cell .v { font-size:15px; font-weight:700; }
+  .cell .v small { font-weight:500; color:var(--ink-2); }
+  .sec-label { font-size:11.5px; color:var(--ink-2); font-weight:600; letter-spacing:.4px; margin:14px 0 7px; }
+  .abstract { font-size:13px; line-height:1.75; color:#33383f; }
+  .abstract.zh { color:var(--ink); background:var(--accent-soft); border-radius:10px; padding:12px 14px; }
+  .kw-row { display:flex; gap:7px; flex-wrap:wrap; }
+  .kw { font-size:11.5px; background:var(--accent-soft); color:var(--accent); border-radius:6px; padding:3px 9px; animation:fadeUp .4s both; }
+  .llm-note { font-size:12.5px; background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:9px; padding:9px 13px; line-height:1.6; }
+  .modal .actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+
+  /* ---------- LLM 设置弹窗 ---------- */
+  .form { display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+  .form label { font-size:11.5px; color:var(--ink-2); font-weight:600; display:block; margin-bottom:5px; }
+  .form input {
+    width:100%; font-size:13px; padding:9px 12px; border:1.5px solid var(--line);
+    border-radius:9px; outline:none; background:#fbfcfd; font-family:inherit;
+    transition:border-color .2s;
+  }
+  .form input:focus { border-color:var(--accent); background:#fff; }
+  .form .note { font-size:11.5px; color:#9aa1ac; line-height:1.6; }
+  .form .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .form .btns { display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
+  #llm-status { font-size:12.5px; min-height:18px; line-height:1.5; }
+  #llm-status.ok { color:var(--good); }
+  #llm-status.err { color:#b91c1c; }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position:fixed; left:50%; bottom:34px; transform:translate(-50%, 80px); z-index:99;
+    background:#1d2026; color:#fff; font-size:13px; padding:11px 22px; border-radius:12px;
+    box-shadow:0 10px 34px rgba(0,0,0,.3); opacity:0; transition:all .3s cubic-bezier(.2,.7,.3,1);
+    pointer-events:none; max-width:80vw;
+  }
+  #toast.show { transform:translate(-50%, 0); opacity:1; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <h1>Scholar Search</h1>
+        <p>arXiv 预印本 + 期刊会议顶刊 · 相关度排序 · 学术影响力分析</p>
+      </div>
+    </div>
+    <div class="sources">
+      <div class="src"><span class="dot"></span>arXiv API</div>
+      <button class="src" id="src-impact" type="button" title="点击测试引用数据源连通性（Semantic Scholar 优先，限流时自动切换 OpenAlex）"><span class="dot"></span>引用数据源</button>
+      <button class="src dim" id="src-llm" type="button" title="点击配置 LLM 精排（任意 OpenAI 兼容接口）"><span class="dot"></span>LLM 精排</button>
+    </div>
+  </header>
+
+  <div class="search-card">
+    <div class="inputrow">
+      <div class="query-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="query" placeholder="输入关键词（多个词取交集）或研究方向描述，如：vision-language navigation 具身智能" spellcheck="false">
+      </div>
+      <button class="btn-primary" id="go"><span class="spinner"></span><span class="label">检 索</span></button>
+    </div>
+    <div class="filters">
+      <span class="flabel">来源</span>
+      <select id="source">
+        <option value="all" selected>全部（arXiv + 期刊会议）</option>
+        <option value="openalex">期刊与会议（OpenAlex）</option>
+        <option value="arxiv">仅 arXiv 预印本</option>
+      </select>
+      <button class="chip" id="venuef" type="button" title="只保留正式发表在顶刊/顶会的论文（作用于期刊会议来源）">🏆 仅顶刊顶会</button>
+      <span class="flabel" style="margin-left:6px">分类</span>
+      <div id="cats" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <span class="flabel" style="margin-left:6px">数量</span>
+      <select id="limit"><option>10</option><option selected>30</option><option>50</option><option>100</option></select>
+      <span class="flabel">时间</span>
+      <select id="days">
+        <option value="0" selected>不限</option><option value="7">近一周</option>
+        <option value="30">近一月</option><option value="90">近三月</option><option value="365">近一年</option>
+      </select>
+      <div class="llm-chip"><button class="chip" id="llm" type="button" title="配置 LLM_API_KEY 后可用：相关性 0-10 精排 + 摘要中译">✨ LLM 精排</button></div>
+    </div>
+    <div class="hint">
+      期刊与会议数据来自 OpenAlex（Nature、IEEE、Springer、ACM 等出版社正式发表论文）；arXiv 为预印本。
+      "仅顶刊顶会"内置 AI / 机器学习 / 视觉 / NLP / 机器人方向清单（TPAMI、IJCV、NeurIPS、CVPR、T-RO、IJRR、Science Robotics、ICRA、IROS 等）。
+      引用与 venue 数据来自 Semantic Scholar，限流时自动切换 OpenAlex。按 Enter 检索。
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="stats" id="stats">输入关键词开始检索，或直接查看示例方向。</div>
+    <div class="grow"></div>
+    <select id="sort" style="display:none">
+      <option value="rel" selected>按相关度排序</option>
+      <option value="cites">按引用数排序</option>
+      <option value="impact">按影响力分排序</option>
+      <option value="date">按发表时间排序</option>
+    </select>
+    <button class="btn-ghost" id="csv" style="display:none">⬇ 导出 CSV</button>
+    <button class="btn-ghost" id="md" style="display:none">⬇ 导出 Markdown</button>
+    <button class="btn-ghost" id="survey">生成综述（前 6 篇）</button>
+  </div>
+
+  <div class="paper-list" id="list"></div>
+  <div id="empty" class="empty" style="display:none"><div class="big">🔍</div>没有检索到符合条件的论文，换个关键词、放宽分类或关闭顶刊过滤试试。</div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal" style="position:relative">
+      <button class="close" id="close">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="llm-overlay">
+    <div class="modal" style="position:relative;width:min(560px,94vw)">
+      <button class="close" id="llm-close">✕</button>
+      <h2 style="padding-right:0">✨ LLM 精排设置</h2>
+      <div class="form">
+        <div>
+          <label>API Key</label>
+          <input id="llm-key" type="password" placeholder="sk-...（任意 OpenAI 兼容服务的 Key）" spellcheck="false">
+        </div>
+        <div class="row2">
+          <div>
+            <label>Base URL</label>
+            <input id="llm-base" placeholder="https://api.openai.com/v1" spellcheck="false">
+          </div>
+          <div>
+            <label>模型</label>
+            <input id="llm-model" placeholder="gpt-4o-mini" spellcheck="false">
+          </div>
+        </div>
+        <div class="note">保存到本机 ~/.arxiv-digest/llm.json，仅用于本地调用。环境变量 LLM_API_KEY 优先于此配置。配置后：检索 Top 20 相关性 0-10 精排 + 摘要中译。</div>
+        <div class="btns">
+          <button class="btn-primary" id="llm-save" style="padding:9px 20px;font-size:13.5px"><span class="label">保 存</span></button>
+          <button class="btn-ghost" id="llm-test">测试连接</button>
+          <button class="btn-ghost" id="llm-clear">清除已存配置</button>
+        </div>
+        <div id="llm-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const list = $("#list");
+let ROWS = [];
+let llmOn = false;
+
+const CATS = ["cs.CV", "cs.CL", "cs.AI", "cs.LG", "cs.RO", "cs.IR", "stat.ML"];
+const selected = new Set(["cs.CV"]);
+
+function toast(msg, duration) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove("show"), duration || 2600);
+}
+
+/* 分类 chips */
+function renderCats() {
+    const box = $("#cats");
+    box.innerHTML = "";
+    for (const c of CATS) {
+        const b = document.createElement("button");
+        b.className = "chip" + (selected.has(c) ? " on" : "");
+        b.textContent = c;
+        b.onclick = () => { selected.has(c) ? selected.delete(c) : selected.add(c); renderCats(); };
+        box.appendChild(b);
+    }
+}
+
+/* 分数条：先插入 0 宽，下一帧再赋值触发过渡 */
+function fillBars(root) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        root.querySelectorAll(".bar i").forEach((el) => { el.style.width = el.dataset.w + "%"; });
+    }));
+}
+
+function bar(v, cls, max) {
+    const pct = v == null ? 0 : Math.min(100, Math.round(v / max * 100));
+    return `<div class="bar ${cls}"><i data-w="${pct}"></i></div>`;
+}
+
+function rowHtml(r, i) {
+    const cite = r.citations == null ? "—" : r.citations.toLocaleString();
+    const infl = r.influential == null ? "—" : r.influential.toLocaleString();
+    const rel = (r.llm_score != null ? r.score + r.llm_score : r.score);
+    const relMax = Math.max(10, ...ROWS.map(x => (x.llm_score != null ? x.score + x.llm_score : x.score)));
+    const venue = r.venue ? `<span class="venue">${escapeHtml(r.venue)}</span>` : "";
+    const badge = r.source === "openalex"
+        ? `<span class="srcbadge oa">期刊/会议</span>`
+        : `<span class="srcbadge">arXiv</span>`;
+    return `<div class="paper" style="animation-delay:${Math.min(i * 45, 500)}ms" data-i="${i}">
+      <div class="rank">${String(i + 1).padStart(2, "0")}</div>
+      <div class="main">
+        <div class="title"><a href="${r.link}" target="_blank">${escapeHtml(r.title)}</a></div>
+        <div class="meta">
+          <span>${escapeHtml(r.authors.join(", "))}</span>
+          <span>${r.published}</span>
+          ${badge}
+          ${r.categories.slice(0, 3).map((c) => `<span class="cat">${c}</span>`).join("")}
+          ${venue}
+        </div>
+      </div>
+      <div class="side">
+        <div class="metric">
+          <div class="num">${rel.toFixed(1)}<small>/10+</small></div>
+          <div class="name">相关度${r.llm_score != null ? " ✨" : ""}</div>
+          ${bar(rel, "rel", relMax)}
+        </div>
+        <div class="metric">
+          <div class="num">${r.impact_score == null ? "—" : r.impact_score.toFixed(1)}</div>
+          <div class="name">影响力</div>
+          ${bar(r.impact_score, "imp", 10)}
+          <div class="cite-note">引用 ${cite} · 高影响 ${infl}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderRows(rows) {
+    ROWS = rows;
+    list.innerHTML = rows.map(rowHtml).join("");
+    fillBars(list);
+    list.querySelectorAll(".paper").forEach((el) => {
+        el.onclick = (e) => {
+            if (e.target.closest("a")) return;
+            openModal(ROWS[+el.dataset.i]);
+        };
+    });
+    $("#empty").style.display = rows.length ? "none" : "block";
+    const show = rows.length > 0;
+    $("#sort").style.display = show ? "" : "none";
+    $("#csv").style.display = show ? "" : "none";
+    $("#md").style.display = show ? "" : "none";
+}
+
+function sortRows() {
+    const key = $("#sort").value;
+    const val = (r) => ({
+        rel: (r.llm_score != null ? r.score + r.llm_score : r.score),
+        cites: r.citations == null ? -1 : r.citations,
+        impact: r.impact_score == null ? -1 : r.impact_score,
+        date: r.published,
+    }[key]);
+    renderRows([...ROWS].sort((a, b) => val(b) - val(a)));
+    $("#sort").value = key;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* 详情弹窗 */
+function openModal(r) {
+    const cite = r.citations == null ? "—" : r.citations.toLocaleString();
+    const idCell = r.source === "openalex"
+        ? `<div class="cell"><div class="k">DOI</div><div class="v" style="font-size:11.5px;word-break:break-all">${escapeHtml(r.doi || "—")}</div></div>`
+        : `<div class="cell"><div class="k">arXiv 编号</div><div class="v" style="font-size:12.5px">${escapeHtml(r.arxiv_id)}</div></div>`;
+    const body = $("#modal-body");
+    body.innerHTML = `
+      <h2><a href="${r.link}" target="_blank" style="color:inherit;text-decoration:none">${escapeHtml(r.title)}</a></h2>
+      <div class="grid">
+        <div class="cell"><div class="k">规则相关度</div><div class="v">${r.score}</div></div>
+        <div class="cell"><div class="k">LLM 相关性</div><div class="v">${r.llm_score == null ? "—" : r.llm_score + " <small>/10</small>"}</div></div>
+        <div class="cell"><div class="k">引用 / 高影响</div><div class="v">${cite} <small>/ ${r.influential == null ? "—" : r.influential.toLocaleString()}</small></div></div>
+        <div class="cell"><div class="k">影响力分</div><div class="v">${r.impact_score == null ? "—" : r.impact_score}</div></div>
+        ${idCell}
+        <div class="cell"><div class="k">${r.source === "openalex" ? "发表日期" : "提交日期"}</div><div class="v" style="font-size:13px">${r.published}</div></div>
+        <div class="cell"><div class="k">正式发表</div><div class="v" style="font-size:12.5px">${escapeHtml(r.venue || "预印本")}</div></div>
+        <div class="cell"><div class="k">来源</div><div class="v" style="font-size:12.5px">${escapeHtml(r.source_label || r.source)}</div></div>
+      </div>
+      ${r.matched.length ? `<div class="sec-label">命中关键词</div><div class="kw-row">${r.matched.map((k) => `<span class="kw">${escapeHtml(k)}</span>`).join("")}</div>` : ""}
+      ${r.llm_reason ? `<div class="sec-label">LLM 评述</div><div class="llm-note">${escapeHtml(r.llm_reason)}（相关性 ${r.llm_score}/10）</div>` : ""}
+      <div class="sec-label">摘要（原文）</div>
+      <div class="abstract" id="abs-en">${escapeHtml(r.abstract)}</div>
+      <div id="abs-zh-slot">${r.abstract_zh ? `<div class="sec-label">摘要（中译${"LLM"})</div><div class="abstract zh">${escapeHtml(r.abstract_zh)}</div>` : ""}</div>
+      <div class="actions">
+        <button class="btn-ghost" id="copy-bib">⧉ 复制引用（BibTeX）</button>
+        <button class="btn-ghost" onclick="window.open('${r.link}')" target="_blank">↗ 打开原文</button>
+      </div>`;
+    $("#overlay").classList.add("show");
+    $("#copy-bib").onclick = () => {
+        const bib = r.source === "openalex"
+          ? `@article{${(r.doi || r.title).replace(/\W/g, "").slice(0, 40)},\n  title={${r.title}},\n  year={${r.published.slice(0, 4)}},\n  journal={${r.venue || "unknown"}},\n  doi={${r.doi}},\n  url={${r.link}}\n}`
+          : `@misc{${r.arxiv_id.replace(/\W/g, "")},\n  title={${r.title}},\n  year={${r.published.slice(0, 4)}},\n  eprint={${r.arxiv_id}},\n  archivePrefix={arXiv},\n  url={${r.link}}\n}`;
+        navigator.clipboard.writeText(bib).then(() => toast("BibTeX 已复制到剪贴板"), () => toast("复制失败"));
+    };
+}
+
+/* 桥接调用：优先 pywebview，回退演示数据 */
+async function callApi(fn, ...args) {
+    if (window.pywebview && window.pywebview.api) {
+        const raw = await window.pywebview.api[fn](...args);
+        return JSON.parse(raw);
+    }
+    if (fn === "search" && window.__DEMO__) { await new Promise((r) => setTimeout(r, 350)); return window.__DEMO__; }
+    return null;
+}
+
+function skeleton(n) {
+    list.innerHTML = Array.from({ length: n }, () => `<div class="skel"></div>`).join("");
+    $("#empty").style.display = "none";
+}
+
+async function doSearch() {
+    const q = $("#query").value.trim();
+    if (!q) { toast("请输入关键词或研究方向"); return; }
+    const btn = $("#go");
+    $("#survey").disabled = true;
+    btn.disabled = true; btn.classList.add("busy");
+    skeleton(5);
+    $("#stats").innerHTML = "检索中…";
+    try {
+        const res = await callApi("search", q, JSON.stringify([...selected]),
+                                  +$("#limit").value, $("#days").value, llmOn,
+                                  $("#source").value, venueOn());
+        if (!res || !res.ok) { throw new Error(res ? res.error : "桌面桥接不可用"); }
+        renderRows(res.rows);
+        $("#src-impact").classList.toggle("dim", !res.impact_available);
+        const parts = [];
+        if (res.counts && res.counts.arxiv) parts.push(`arXiv <b>${res.counts.arxiv}</b> 篇`);
+        if (res.counts && res.counts.openalex) parts.push(`期刊/会议 <b>${res.counts.openalex}</b> 篇`);
+        $("#stats").innerHTML = `共 <b>${res.rows.length}</b> 篇${parts.length ? "（" + parts.join(" · ") + "）" : ""} · 耗时 <b>${res.elapsed}s</b>${res.impact_available ? "" : " · <b>引用数据暂不可用</b>"}`;
+    } catch (e) {
+        list.innerHTML = "";
+        $("#stats").textContent = "";
+        toast(String(e.message || e));
+    } finally {
+        btn.disabled = false; btn.classList.remove("busy");
+        $("#survey").disabled = false;
+    }
+}
+
+/* 顶刊过滤开关：仅对含期刊会议来源生效 */
+function venueOn() { return $("#venuef").classList.contains("on"); }
+function syncVenueChip() {
+    const onlyArxiv = $("#source").value === "arxiv";
+    $("#venuef").disabled = onlyArxiv;
+    if (onlyArxiv) $("#venuef").classList.remove("on");
+}
+$("#venuef").onclick = () => {
+    if ($("#venuef").disabled) return;
+    $("#venuef").classList.toggle("on");
+    toast(venueOn() ? "已开启：只保留正式发表在顶刊/顶会的论文（期刊会议来源）" : "已关闭顶刊顶会过滤");
+};
+$("#source").onchange = syncVenueChip;
+
+/* 导出 */
+function download(name, text, mime) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+function toMarkdown() {
+    const lines = [`# 检索结果 · ${ROWS.length} 篇`, ""];
+    ROWS.forEach((r, i) => {
+        lines.push(`## ${i + 1}. ${r.title}`);
+        lines.push(`- 作者：${r.authors.join(", ")} ｜ ${r.published} ｜ ${r.source_label || r.source}${r.categories.length ? " ｜ " + r.categories.join(" / ") : ""}`);
+        lines.push(`- 相关度 ${r.score}${r.llm_score != null ? `（LLM ${r.llm_score}/10）` : ""} ｜ 引用 ${r.citations ?? "—"} ｜ 影响力 ${r.impact_score ?? "—"}${r.venue ? ` ｜ ${r.venue}` : ""}`);
+        lines.push(`- 链接：${r.link}`);
+        lines.push("");
+    });
+    return lines.join("\n");
+}
+
+/* 顶部胶囊：引用数据源连通性测试 */
+$("#src-impact").onclick = async () => {
+    const pill = $("#src-impact");
+    pill.classList.add("testing");
+    toast("正在测试引用数据源…");
+    try {
+        const res = await callApi("test_impact_providers");
+        if (!res) { toast("桌面桥接不可用"); return; }
+        const s2 = res.semantic_scholar ? "✓ 正常" : "✗ 限流/不可达";
+        const oa = res.openalex ? "✓ 正常" : "✗ 不可达";
+        toast(`Semantic Scholar ${s2} · OpenAlex ${oa}${res.semantic_scholar ? "" : "（已自动用 OpenAlex 兜底）"}`, 4200);
+        pill.classList.toggle("dim", !res.semantic_scholar && !res.openalex);
+    } finally {
+        pill.classList.remove("testing");
+    }
+};
+
+/* 顶部胶囊：LLM 设置弹窗 */
+$("#src-llm").onclick = async () => {
+    const cfg = await callApi("llm_config");
+    $("#llm-key").value = "";
+    $("#llm-key").placeholder = cfg && cfg.configured ? `已保存（${cfg.api_key_masked}），输入可覆盖` : "sk-...（任意 OpenAI 兼容服务的 Key）";
+    $("#llm-base").value = cfg && cfg.configured ? cfg.base_url : "";
+    $("#llm-model").value = cfg && cfg.configured ? cfg.model : "";
+    setLlmStatus(cfg && cfg.configured ? `已配置：${cfg.base_url} · ${cfg.model}（Key ${cfg.api_key_masked}）` : "", null);
+    $("#llm-overlay").classList.add("show");
+};
+
+function setLlmStatus(text, ok) {
+    const el = $("#llm-status");
+    el.textContent = text || "";
+    el.classList.toggle("ok", ok === true);
+    el.classList.toggle("err", ok === false);
+}
+
+$("#llm-close").onclick = () => $("#llm-overlay").classList.remove("show");
+$("#llm-overlay").onclick = (e) => { if (e.target === e.currentTarget) $("#llm-overlay").classList.remove("show"); };
+
+$("#llm-save").onclick = async () => {
+    const key = $("#llm-key").value.trim();
+    if (!key) { setLlmStatus("请输入 API Key（或留空用已保存的 Key 只改其他项）", false); return; }
+    const res = await callApi("save_llm_config", key, $("#llm-base").value.trim(), $("#llm-model").value.trim());
+    if (res && res.ok) {
+        setLlmStatus("已保存 ✓", true);
+        await refreshLlmState();
+        toast("LLM 配置已保存");
+    } else {
+        setLlmStatus(res ? res.error : "桌面桥接不可用", false);
+    }
+};
+
+$("#llm-test").onclick = async () => {
+    setLlmStatus("测试中…", null);
+    const key = $("#llm-key").value.trim();
+    if (key) {  // 先保存表单里的新值再测试
+        await callApi("save_llm_config", key, $("#llm-base").value.trim(), $("#llm-model").value.trim());
+    }
+    const res = await callApi("test_llm");
+    if (!res) { setLlmStatus("桌面桥接不可用", false); return; }
+    setLlmStatus(res.message, res.ok);
+    await refreshLlmState();
+};
+
+$("#llm-clear").onclick = async () => {
+    await callApi("save_llm_config", "", "", "");
+    $("#llm-key").value = ""; $("#llm-base").value = ""; $("#llm-model").value = "";
+    setLlmStatus("已清除本地配置", null);
+    await refreshLlmState();
+};
+
+async function refreshLlmState() {
+    const info = await callApi("llm_available");
+    const available = !!(info && info.available);
+    $("#src-llm").classList.toggle("dim", !available);
+    if (!available) {
+        $("#llm").classList.remove("on");
+        llmOn = false;
+    } else if (!llmOn) {
+        $("#llm").classList.add("on");
+        llmOn = true;
+    }
+}
+
+/* 事件绑定 */
+$("#go").onclick = doSearch;
+$("#query").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
+$("#sort").onchange = sortRows;
+$("#csv").onclick = async () => {
+    let text;
+    if (window.pywebview && window.pywebview.api) {
+        text = await window.pywebview.api.export_csv(JSON.stringify(ROWS));
+    } else {
+        const head = "标题,作者,来源,发表日期,分类,相关度,LLM相关性,引用数,影响力分,链接\n";
+        text = head + ROWS.map((r) => `"${r.title.replace(/"/g, '""')}","${r.authors.join(", ")}",${r.source_label || r.source},${r.published},"${r.categories.join("/")}",${r.score},${r.llm_score ?? ""},${r.citations ?? ""},${r.impact_score ?? ""},${r.link}`).join("\n");
+    }
+    download("论文检索结果.csv", "\ufeff" + text, "text/csv");
+    toast("CSV 已导出");
+};
+$("#md").onclick = () => { download("论文检索结果.md", toMarkdown(), "text/markdown"); toast("Markdown 已导出"); };
+$("#survey").onclick = async () => {
+    const btn = $("#survey");
+    btn.disabled = true;
+    $("#go").disabled = true;
+    const original = btn.textContent;
+    btn.textContent = "正在下载 PDF 并生成综述…";
+    try {
+        const res = await callApi("generate_survey", 6, true, null, llmOn);
+        if (!res || !res.ok) throw new Error(res ? res.error : "桌面桥接不可用");
+        download("文献综述.md", res.markdown, "text/markdown");
+        toast(`综述已保存：${res.report_path}${res.pdf_errors.length ? "（部分 PDF 不可用，已保留元数据）" : ""}`, 6000);
+    } catch (e) { toast(String(e.message || e)); }
+    finally { btn.disabled = false; $("#go").disabled = false; btn.textContent = original; }
+};
+$("#llm").onclick = () => {
+    llmOn = !llmOn;
+    $("#llm").classList.toggle("on", llmOn);
+    if (llmOn) toast("LLM 精排已开启（未配置 Key 时自动跳过）");
+    else toast("LLM 精排已关闭");
+};
+$("#close").onclick = () => $("#overlay").classList.remove("show");
+$("#overlay").onclick = (e) => { if (e.target === e.currentTarget) $("#overlay").classList.remove("show"); };
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { $("#overlay").classList.remove("show"); $("#llm-overlay").classList.remove("show"); }
+});
+
+/* 初始化 */
+renderCats();
+syncVenueChip();
+(async () => { await refreshLlmState(); })();
+if (window.__DEMO__) {
+    $("#query").value = window.__DEMO__.query || "";
+    renderRows(window.__DEMO__.rows);
+    $("#stats").innerHTML = `共 <b>${window.__DEMO__.rows.length}</b> 篇 · 相关度 + 影响力已计算 · 演示数据`;
+}
+</script>
+</body>
+</html>

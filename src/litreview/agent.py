@@ -7,12 +7,14 @@ produced. Results are cached under ``~/.litreview/cache``.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .compare import similarity, tag_papers
+from .compare import similarity
+from .discovery import DiscoverySource
 from .models import Paper, PaperContent
 from .pdf import PdfError, download_pdf, extract_content
 from .sources import ArxivSource, OpenAlexSource, SourceError, merge_papers
@@ -45,22 +47,44 @@ class LitReviewAgent:
     def __init__(self, *, cache_dir: str | Path = DEFAULT_CACHE,
                  arxiv: ArxivSource | None = None,
                  openalex: OpenAlexSource | None = None,
-                 use_openalex: bool = True, use_llm: bool = True):
+                 use_openalex: bool = True, use_llm: bool = True,
+                 discovery: DiscoverySource | None = None):
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.arxiv = arxiv or ArxivSource()
-        self.openalex = openalex or OpenAlexSource()
+        self.discovery = discovery
+        if discovery is None and arxiv is None and openalex is None:
+            self.discovery = DiscoverySource(source="all" if use_openalex else "arxiv")
+        self.arxiv = arxiv
+        self.openalex = openalex
         self.use_openalex = use_openalex
         self.use_llm = use_llm
 
     def search(self, query: str, limit: int = 8) -> list[Paper]:
-        papers = self.arxiv.search(query, limit)
-        if self.use_openalex:
+        if self.discovery is not None:
+            papers = self.discovery.search(query, limit)
+        else:
+            papers = (self.arxiv or ArxivSource()).search(query, limit)
+        if self.discovery is None and self.use_openalex:
             try:
-                papers = merge_papers(papers, self.openalex.search(query, limit))
+                papers = merge_papers(papers, (self.openalex or OpenAlexSource()).search(query, limit))
             except SourceError as error:
                 logger.warning("OpenAlex 降级: %s", error)
-        return papers[:limit]
+        papers = papers[:limit]
+        self._search_cache(query, limit).write_text(
+            json.dumps([p.to_dict() for p in papers], ensure_ascii=False), encoding="utf-8")
+        return papers
+
+    def _search_cache(self, query: str, limit: int) -> Path:
+        settings = self.discovery.cache_key() if self.discovery else {"legacy": self.use_openalex}
+        key = json.dumps([query, limit, settings], sort_keys=True)
+        return self.cache_dir / f"search-{hashlib.sha256(key.encode()).hexdigest()}.json"
+
+    def _cached_search(self, query: str, limit: int) -> list[Paper]:
+        try:
+            data = json.loads(self._search_cache(query, limit).read_text(encoding="utf-8"))
+            return [Paper(**entry) for entry in data]
+        except (OSError, ValueError, TypeError) as error:
+            raise SourceError("no valid cached search results (offline)") from error
 
     def fetch_pdfs(self, papers: list[Paper], *, offline: bool = False
                    ) -> tuple[dict[str, PaperContent], list[str]]:
@@ -87,12 +111,18 @@ class LitReviewAgent:
         return contents, errors
 
     def run(self, query: str, *, limit: int = 8, out_dir: str | Path = ".",
-            offline: bool = False, pdf: bool = True) -> SurveyResult:
+            offline: bool = False, pdf: bool = True,
+            papers: list[Paper] | None = None) -> SurveyResult:
         out = Path(out_dir)
         out.mkdir(parents=True, exist_ok=True)
         result = SurveyResult(query=query, papers=[])
         try:
-            papers = self.search(query, limit)
+            if papers is not None:
+                papers = list(papers[:limit])
+            elif offline:
+                papers = self._cached_search(query, limit)
+            else:
+                papers = self.search(query, limit)
         except SourceError as error:
             result.source_errors.append(str(error))
             papers = []
