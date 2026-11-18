@@ -21,6 +21,7 @@ Scholar Workbench 将多来源论文检索、桌面交互、引用分析、按�
 - [MCP 接入](#mcp-接入)
 - [输出、缓存与离线复现](#输出缓存与离线复现)
 - [架构与算法](#架构与算法)
+- [设计文档](DESIGN.md)
 - [测试与开发](#测试与开发)
 - [迁移说明](#迁移说明)
 - [常见问题](#常见问题)
@@ -344,6 +345,8 @@ print(result.report_path)
 
 ## 架构与算法
 
+完整的背景、总体架构、接口、数据流与边界/异常场景见 [DESIGN.md](DESIGN.md)。
+
 ```mermaid
 flowchart LR
     CLI["CLI"] --> Discovery["共用多源检索与排序"]
@@ -416,6 +419,8 @@ python -m ruff check src
 python -m compileall -q src tests
 python -m build
 ```
+
+日常开发与提交前至少运行 `python -m pytest tests -q`；测试全部离线，HTTP 与 LLM 均被 mock，不联网、不消耗 token。排查单项可用 `python -m pytest tests/digest/test_llm.py -q`。
 
 测试使用 Atom / OpenAlex 固定响应、HTTP mock 与合成 PDF，覆盖检索、打分、引用兜底、LLM 降级、PDF 与图注、主题比较、历史去重、共享检索、离线缓存、桌面到综述的元数据传递和 MCP 工具调用。测试会隔离本地真实 LLM 配置。
 

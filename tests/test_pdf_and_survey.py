@@ -175,3 +175,15 @@ class TestSurvey:
         assert "## 综述叙述（LLM 润色）" in polished
         assert "重写后的综述叙述。" in polished
         assert "## 参考" in polished
+
+    def test_polish_with_llm_failure_keeps_rule_baseline(self):
+        """润色调用抛异常时保留规则基线并给出提示，事实表格不受影响。"""
+        class FailingClient:
+            def complete(self, prompt):
+                raise RuntimeError("endpoint down")
+
+        markdown = build_survey("x", sample_papers()[:1], {})
+        result = polish_survey(markdown, FailingClient())
+        assert result.startswith(markdown)
+        assert "LLM 润色失败" in result and "endpoint down" in result
+        assert "## 横向对比" in result

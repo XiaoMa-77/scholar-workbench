@@ -140,3 +140,43 @@ def test_rerank_skips_without_credentials():
     scored = []
     llm.rerank(scored, KEYWORDS, None, top_n=5)  # 不应抛异常
     assert scored == []
+
+
+def test_review_paper_degrades_on_invalid_score_fields(monkeypatch):
+    """score 缺失或非数值时返回 None 降级，而不是抛 KeyError/TypeError/ValueError。"""
+    paper = parse_atom(ATOM_FIXTURE)[0]
+    creds = Credentials(api_key="fake", base_url="https://api.example.com", model="x")
+    for content in (
+        '{"reason": "缺少分数字段"}',
+        '{"score": "not-a-number", "reason": "坏分数"}',
+        '{"score": null, "reason": "空分数"}',
+    ):
+        monkeypatch.setattr(
+            llm.urllib.request, "urlopen", fake_urlopen_with_content(content)
+        )
+        assert review_paper(paper, KEYWORDS, creds) is None
+
+
+def test_rerank_applies_results_only_to_top_n(monkeypatch):
+    """LLM 结果只回填到规则分 Top N，其余条目保持纯规则分。"""
+    from arxiv_digest.llm import LLMResult
+    from arxiv_digest.scorer import score_paper
+
+    paper = parse_atom(ATOM_FIXTURE)[0]
+    high = score_paper(paper, [("vision-language", 3.0)])  # 规则分更高
+    low = score_paper(paper, [("diffusion", 1.0)])
+    scored = [low, high]
+    creds = Credentials(api_key="fake", base_url="https://api.example.com", model="x")
+    reviewed = []
+
+    def fake_review(p, keywords, creds):
+        reviewed.append(p.title)
+        return LLMResult(score=7.0, reason="相关", abstract_zh="中译摘要")
+
+    monkeypatch.setattr(llm, "review_paper", fake_review)
+    llm.rerank(scored, KEYWORDS, creds, top_n=1)
+
+    assert reviewed == [high.paper.title]  # 只评审规则分最高的一篇
+    assert high.llm_score == 7.0 and high.llm_reason == "相关"
+    assert high.abstract_zh == "中译摘要"
+    assert low.llm_score == 0.0 and low.abstract_zh is None
